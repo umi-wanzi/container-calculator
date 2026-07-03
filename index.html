@@ -136,7 +136,7 @@
     .container-list { display: grid; gap: 12px; }
     .container-row {
       display: grid;
-      grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr) 140px minmax(0, 1fr);
+      grid-template-columns: 76px repeat(3, minmax(0, 1fr)) 140px minmax(0, 1fr);
       gap: 12px;
       align-items: end;
       padding: 15px;
@@ -195,7 +195,7 @@
     .results-head p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
     .volume-badge { flex: none; padding: 8px 11px; border-radius: 9px; color: var(--primary-dark); background: var(--primary-soft); font-size: 12px; font-weight: 700; }
     .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
-    table { width: 100%; min-width: 1180px; border-collapse: collapse; }
+    table { width: 100%; min-width: 1420px; border-collapse: collapse; }
     th, td { padding: 15px 14px; border-bottom: 1px solid #e6eeec; text-align: right; white-space: nowrap; font-size: 13px; }
     th { color: #536762; background: #f7faf9; font-size: 12px; font-weight: 700; }
     th:first-child, td:first-child { position: sticky; left: 0; text-align: left; }
@@ -212,7 +212,7 @@
     .notes li + li { margin-top: 7px; }
 
     @media (max-width: 900px) {
-      .container-row { grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr) 140px minmax(0, 1fr); }
+      .container-row { grid-template-columns: 76px repeat(3, minmax(0, 1fr)) 140px minmax(0, 1fr); }
     }
     @media (max-width: 620px) {
       .page { width: min(100% - 22px, 1160px); padding-top: 27px; }
@@ -281,7 +281,7 @@
         <div id="emptyState" class="empty-state"><strong>暂无测算结果</strong>结果会按已启用柜型展示</div>
         <div id="resultTable" class="table-wrap hidden">
           <table>
-            <thead><tr><th>柜型</th><th>可装体积</th><th>可装箱数</th><th>可装单品数</th><th>单柜运费</th><th>每箱运费</th><th>每个单品运费</th><th>预计装柜数</th><th>预计总费用</th></tr></thead>
+            <thead><tr><th>柜型</th><th>可装体积</th><th>可装箱数</th><th>可装单品数</th><th>单柜运费</th><th>每立方运费</th><th>每箱运费</th><th>每个单品运费</th><th>运输方式</th><th>预计装柜数</th><th>预计总费用</th></tr></thead>
             <tbody id="resultBody"></tbody>
           </table>
         </div>
@@ -293,7 +293,8 @@
       <ul>
         <li>本工具按体积估算装柜数量，未考虑重量限制、纸箱摆放方向、托盘、装柜损耗、超重、易碎品保护空间等因素。</li>
         <li>未填写总箱数或单品数量时，预计装柜数按 1 个满柜计算；填写总货量后，预计装柜数 = 货物总体积 ÷ 柜型可装体积。</li>
-        <li>不满一柜按拼柜比例折算费用；预计总费用 = 单柜运费 × 预计装柜数，实际拼柜报价可能另含最低收费及操作费。</li>
+        <li>不满一柜按“货物体积 × 每立方运费”计算；整柜按“整柜数 × 单柜运费”计算；有整柜又有尾量时，两部分分别计费后相加。</li>
+        <li>单柜运费和每立方运费只填一项时，系统会按柜型可装体积自动折算另一项作为参考；实际拼柜报价可能另含最低收费及操作费。</li>
         <li>实际装柜数量需以货代或仓库装柜方案为准。</li>
         <li>40GP、40HQ 的可装体积可根据货代口径自行调整。</li>
       </ul>
@@ -330,6 +331,7 @@
           <label class="check-label"><input class="enabled" type="checkbox" ${i > 0 ? 'checked' : ''}>${c.type}</label>
           <div class="field"><label>可装体积</label><div class="input-wrap"><input class="cbm" type="number" min="0" step="0.1" value="${c.cbm}"><span class="unit">CBM</span></div></div>
           <div class="field"><label>单柜运费</label><div class="input-wrap"><input class="freight" type="number" min="0" step="0.01" placeholder="选填"></div></div>
+          <div class="field"><label>每立方运费</label><div class="input-wrap"><input class="cbm-freight freight" type="number" min="0" step="0.01" placeholder="选填"></div></div>
           <div class="field currency"><label>币种</label><select class="currency-input" aria-label="运费币种">${currencyOptions}</select></div>
           <div class="field rate-field"><label>兑人民币汇率</label><div class="input-wrap"><input class="exchange-rate" type="number" min="0" step="0.0001" value="1"><span class="unit">CNY</span></div></div>
         </div>`).join('');
@@ -419,12 +421,15 @@
         const cbm = Number(row.querySelector('.cbm').value);
         const freightRaw = row.querySelector('.freight').value.trim();
         const freight = freightRaw === '' ? null : Number(freightRaw);
+        const cbmFreightRaw = row.querySelector('.cbm-freight').value.trim();
+        const cbmFreight = cbmFreightRaw === '' ? null : Number(cbmFreightRaw);
         const currency = row.querySelector('.currency-input').value;
         const rate = Number(row.querySelector('.exchange-rate').value);
         if (!Number.isFinite(cbm) || cbm <= 0) throw new Error(`请填写 ${row.dataset.type} 大于 0 的可装体积。`);
         if (freight !== null && (!Number.isFinite(freight) || freight < 0)) throw new Error(`${row.dataset.type} 的运费不能小于 0。`);
+        if (cbmFreight !== null && (!Number.isFinite(cbmFreight) || cbmFreight < 0)) throw new Error(`${row.dataset.type} 的每立方运费不能小于 0。`);
         if (!Number.isFinite(rate) || rate <= 0) throw new Error(`请填写 ${row.dataset.type} 大于 0 的兑人民币汇率。`);
-        return { type: row.dataset.type, cbm, freight, currency, rate };
+        return { type: row.dataset.type, cbm, freight, cbmFreight, currency, rate };
       });
     }
 
@@ -433,6 +438,10 @@
       const original = `${currency} ${value.toFixed(4)}`;
       if (currency === 'CNY') return `¥ ${value.toFixed(4)}`;
       return `${original}<span class="money-sub">≈ ¥ ${(value * rate).toFixed(4)}</span>`;
+    };
+    const formatFreight = (value, currency, rate, derivedText = '') => {
+      if (value === null) return '<span class="not-filled">未填写</span>';
+      return `${formatMoney(value, currency, rate)}${derivedText ? `<span class="money-sub">${derivedText}</span>` : ''}`;
     };
 
     function calculate() {
@@ -444,15 +453,27 @@
           const itemCount = Math.floor(c.cbm / cargo.unitVolume);
           const cartonCount = currentMode === 'carton' ? itemCount : null;
           const actualItems = currentMode === 'carton' ? cartonCount * cargo.perCarton : itemCount;
-          const freightMissing = c.freight === null;
+          const effectiveContainerFreight = c.freight ?? (c.cbmFreight === null ? null : c.cbmFreight * c.cbm);
+          const effectiveCbmFreight = c.cbmFreight ?? (c.freight === null ? null : c.freight / c.cbm);
+          const freightMissing = effectiveContainerFreight === null;
           const noCapacity = actualItems <= 0;
-          const estimatedContainers = cargo.totalVolume === null ? 1 : cargo.totalVolume / c.cbm;
-          const containerFreight = freightMissing ? '<span class="not-filled">未填写</span>' : formatMoney(c.freight, c.currency, c.rate);
-          const cartonFreight = currentMode === 'item' ? '-' : freightMissing ? '<span class="not-filled">未填写</span>' : noCapacity ? '-' : formatMoney(c.freight / cartonCount, c.currency, c.rate);
-          const itemFreight = freightMissing ? '<span class="not-filled">未填写</span>' : noCapacity ? '-' : formatMoney(c.freight / actualItems, c.currency, c.rate);
-          const estimatedLabel = `${estimatedContainers.toFixed(4)} 柜${estimatedContainers < 1 ? '<span class="money-sub">拼柜计费</span>' : ''}`;
-          const estimatedFee = freightMissing ? '<span class="not-filled">未填写</span>' : formatMoney(c.freight * estimatedContainers, c.currency, c.rate);
-          return `<tr><td>${c.type}</td><td>${c.cbm.toFixed(2)} CBM</td><td class="important">${cartonCount === null ? '-' : formatCount(cartonCount)}</td><td class="important">${formatCount(actualItems)}</td><td>${containerFreight}</td><td>${cartonFreight}</td><td>${itemFreight}</td><td class="important">${estimatedLabel}</td><td class="important">${estimatedFee}</td></tr>`;
+          const shipmentVolume = cargo.totalVolume === null ? c.cbm : cargo.totalVolume;
+          const estimatedContainers = shipmentVolume / c.cbm;
+          let fullContainers = Math.floor(shipmentVolume / c.cbm);
+          let remainderVolume = shipmentVolume - fullContainers * c.cbm;
+          if (remainderVolume < 1e-8 || c.cbm - remainderVolume < 1e-8) {
+            if (c.cbm - remainderVolume < 1e-8) fullContainers += 1;
+            remainderVolume = 0;
+          }
+          const shippingMode = fullContainers === 0 ? '拼柜' : remainderVolume > 0 ? '整柜＋拼柜' : '整柜';
+          const containerFreight = formatFreight(effectiveContainerFreight, c.currency, c.rate, c.freight === null && effectiveContainerFreight !== null ? '按每立方运费折算' : '');
+          const cbmFreight = formatFreight(effectiveCbmFreight, c.currency, c.rate, c.cbmFreight === null && effectiveCbmFreight !== null ? '按单柜运费折算' : '');
+          const cartonFreight = currentMode === 'item' ? '-' : freightMissing ? '<span class="not-filled">未填写</span>' : noCapacity ? '-' : formatMoney(effectiveContainerFreight / cartonCount, c.currency, c.rate);
+          const itemFreight = freightMissing ? '<span class="not-filled">未填写</span>' : noCapacity ? '-' : formatMoney(effectiveContainerFreight / actualItems, c.currency, c.rate);
+          const estimatedLabel = `${estimatedContainers.toFixed(4)} 柜`;
+          const totalFee = freightMissing ? null : fullContainers * effectiveContainerFreight + remainderVolume * effectiveCbmFreight;
+          const estimatedFee = totalFee === null ? '<span class="not-filled">未填写</span>' : formatMoney(totalFee, c.currency, c.rate);
+          return `<tr><td>${c.type}</td><td>${c.cbm.toFixed(2)} CBM</td><td class="important">${cartonCount === null ? '-' : formatCount(cartonCount)}</td><td class="important">${formatCount(actualItems)}</td><td>${containerFreight}</td><td>${cbmFreight}</td><td>${cartonFreight}</td><td>${itemFreight}</td><td class="important">${shippingMode}</td><td class="important">${estimatedLabel}</td><td class="important">${estimatedFee}</td></tr>`;
         }).join('');
 
         $('resultBody').innerHTML = rows;
@@ -483,6 +504,7 @@
       document.querySelectorAll('.container-row').forEach(row => {
         row.querySelector('.enabled').checked = row.dataset.type !== '20GP';
         row.querySelector('.freight').value = '';
+        row.querySelector('.cbm-freight').value = '';
         row.querySelector('.currency-input').value = 'CNY';
         row.querySelector('.exchange-rate').value = 1;
         row.querySelector('.cbm').value = defaults.find(c => c.type === row.dataset.type).cbm;
