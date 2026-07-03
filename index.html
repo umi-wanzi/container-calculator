@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>装柜计算器</title>
+  <style>
+    :root {
+      --primary: #176b5b;
+      --primary-dark: #105448;
+      --primary-soft: #e9f5f2;
+      --ink: #1c2b28;
+      --muted: #667a75;
+      --line: #dce7e4;
+      --surface: #ffffff;
+      --bg: #f3f7f6;
+      --danger: #b42318;
+      --shadow: 0 10px 32px rgba(25, 72, 62, .07);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.5;
+    }
+
+    button, input, select { font: inherit; }
+
+    .page {
+      width: min(1160px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 46px 0 40px;
+    }
+
+    .hero { width: min(100%, 1000px); margin: 0 auto 26px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2ca58d;
+      box-shadow: 0 0 0 5px #dff3ee;
+    }
+    h1 { margin: 0; font-size: clamp(30px, 4vw, 44px); letter-spacing: -.04em; }
+    .subtitle { margin: 9px 0 0; color: var(--muted); font-size: 15px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1000px);
+      gap: 22px;
+      align-items: start;
+      justify-content: center;
+    }
+    .stack { display: contents; }
+    .card {
+      width: min(100%, 1000px);
+      background: var(--surface);
+      border: 1px solid rgba(208, 225, 220, .9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    h2 { margin: 0; font-size: 18px; letter-spacing: -.01em; }
+    .step {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      margin-right: 9px;
+      border-radius: 9px;
+      color: #fff;
+      background: var(--primary);
+      font-size: 13px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      padding: 5px;
+      margin-bottom: 22px;
+      border-radius: 13px;
+      background: #eff4f2;
+    }
+    .mode-btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 10px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 650;
+    }
+    .mode-btn.active { color: var(--primary-dark); background: #fff; box-shadow: 0 2px 10px rgba(28, 67, 59, .09); }
+
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; }
+    .field label { display: block; margin-bottom: 7px; color: #42554f; font-size: 13px; font-weight: 650; }
+    .input-wrap { position: relative; }
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      min-height: 45px;
+      padding: 10px 50px 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--ink);
+      background: #fbfdfc;
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    input:focus, select:focus { border-color: #55a998; box-shadow: 0 0 0 3px rgba(44, 165, 141, .12); }
+    .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #81918d; font-size: 12px; pointer-events: none; }
+    .hidden { display: none !important; }
+
+    .container-list { display: grid; gap: 12px; }
+    .container-row {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr) 140px minmax(0, 1fr);
+      gap: 12px;
+      align-items: end;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fbfdfc;
+    }
+    .check-label { display: flex; align-items: center; gap: 9px; min-height: 45px; font-weight: 750; cursor: pointer; }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+    .container-row .field label { font-size: 12px; }
+    .container-row input { min-height: 42px; }
+    .container-row .freight { padding-right: 8px; }
+    .container-row .currency { min-width: 140px; }
+    .currency select {
+      min-width: 140px;
+      padding-right: 28px;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.25 6 7.75l3.5-3.5' fill='none' stroke='%23667a75' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+    }
+    .container-row .rate-field { width: auto; min-width: 0; }
+    .rate-note { margin: 12px 2px 0; color: var(--muted); font-size: 12px; }
+    .money-sub { display: block; margin-top: 3px; color: var(--primary); font-size: 11px; font-weight: 700; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .btn {
+      min-height: 44px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      padding: 10px 18px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .15s, background .15s;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { flex: 1; color: #fff; background: var(--primary); }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { color: var(--primary-dark); border-color: #bcd6d0; background: #f7fbfa; }
+    .btn-ghost { color: var(--muted); background: transparent; }
+
+    .alert {
+      display: none;
+      margin-top: 16px;
+      padding: 11px 13px;
+      border-radius: 10px;
+      color: var(--danger);
+      background: #fff0ee;
+      font-size: 13px;
+    }
+    .alert.show { display: block; }
+
+    .results { margin-top: 22px; }
+    .results-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    .results-head p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .volume-badge { flex: none; padding: 8px 11px; border-radius: 9px; color: var(--primary-dark); background: var(--primary-soft); font-size: 12px; font-weight: 700; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    table { width: 100%; min-width: 1180px; border-collapse: collapse; }
+    th, td { padding: 15px 14px; border-bottom: 1px solid #e6eeec; text-align: right; white-space: nowrap; font-size: 13px; }
+    th { color: #536762; background: #f7faf9; font-size: 12px; font-weight: 700; }
+    th:first-child, td:first-child { position: sticky; left: 0; text-align: left; }
+    th:first-child { z-index: 2; background: #f7faf9; }
+    td:first-child { z-index: 1; background: #fff; font-weight: 800; color: var(--primary-dark); }
+    tbody tr:last-child td { border-bottom: 0; }
+    .important { font-size: 14px; font-weight: 800; color: #132d27; }
+    .not-filled { color: #8a9894; }
+    .empty-state { padding: 38px 18px; text-align: center; color: var(--muted); border: 1px dashed #cbdad6; border-radius: 14px; background: rgba(255,255,255,.55); }
+    .empty-state strong { display: block; margin-bottom: 4px; color: #526661; }
+
+    .notes { margin: 22px auto 0; }
+    .notes ul { margin: 14px 0 0; padding-left: 20px; color: var(--muted); }
+    .notes li + li { margin-top: 7px; }
+
+    @media (max-width: 900px) {
+      .container-row { grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr) 140px minmax(0, 1fr); }
+    }
+    @media (max-width: 620px) {
+      .page { width: min(100% - 22px, 1160px); padding-top: 27px; }
+      .card { padding: 18px; border-radius: 15px; }
+      .fields { grid-template-columns: 1fr; }
+      .container-row { grid-template-columns: 1fr 1fr; }
+      .check-label { grid-column: 1 / -1; min-height: auto; }
+      .container-row .rate-field { grid-column: 1 / -1; width: 100%; }
+      .actions .btn-primary { flex-basis: 100%; }
+      .results-head { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">LOGISTICS TOOL</div>
+      <h1>装柜计算器</h1>
+      <p class="subtitle">输入商品参数，快速估算各柜型装载量与单位海运成本。</p>
+    </header>
+
+    <section class="layout">
+      <div class="stack">
+        <div class="card">
+          <div class="card-title-row"><h2><span class="step">1</span>货物参数</h2></div>
+          <div class="segmented" role="tablist" aria-label="计算方式">
+            <button class="mode-btn active" type="button" data-mode="carton" role="tab" aria-selected="true">按外箱尺寸计算</button>
+            <button class="mode-btn" type="button" data-mode="item" role="tab" aria-selected="false">按单品尺寸计算</button>
+          </div>
+
+          <div id="cartonFields" class="fields">
+            <div class="field"><label for="cartonLength">外箱长</label><div class="input-wrap"><input id="cartonLength" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="cartonWidth">外箱宽</label><div class="input-wrap"><input id="cartonWidth" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="cartonHeight">外箱高</label><div class="input-wrap"><input id="cartonHeight" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="itemsPerCarton">每箱装货量</label><div class="input-wrap"><input id="itemsPerCarton" type="number" min="1" step="1" placeholder="请输入"><span class="unit">个/箱</span></div></div>
+            <div class="field"><label for="totalCartons">总箱数（选填）</label><div class="input-wrap"><input id="totalCartons" type="number" min="1" step="1" placeholder="与单品数量任选其一"><span class="unit">箱</span></div></div>
+            <div class="field"><label for="cartonTotalItems">单品数量（选填）</label><div class="input-wrap"><input id="cartonTotalItems" type="number" min="1" step="1" placeholder="与总箱数任选其一"><span class="unit">个</span></div></div>
+          </div>
+
+          <div id="itemFields" class="fields hidden">
+            <div class="field"><label for="itemLength">单品长</label><div class="input-wrap"><input id="itemLength" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="itemWidth">单品宽</label><div class="input-wrap"><input id="itemWidth" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="itemHeight">单品高</label><div class="input-wrap"><input id="itemHeight" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="itemQuantity">单品数量（选填）</label><div class="input-wrap"><input id="itemQuantity" type="number" min="1" step="1" placeholder="不填则按单柜满柜"><span class="unit">个</span></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title-row"><h2><span class="step">2</span>柜型参数</h2></div>
+          <div id="containerList" class="container-list"></div>
+          <p class="rate-note">参考汇率：2026-07-03 市场汇率，表示 1 单位外币可兑换的人民币金额；可按实际结算汇率修改。</p>
+          <div class="actions">
+            <button id="calculateBtn" type="button" class="btn btn-primary">开始计算</button>
+            <button id="exampleBtn" type="button" class="btn btn-secondary">填入示例</button>
+            <button id="resetBtn" type="button" class="btn btn-ghost">清空</button>
+          </div>
+          <div id="alert" class="alert" role="alert"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="results-head">
+          <div><h2><span class="step">3</span>测算结果</h2><p id="resultHint">完成参数填写后，点击开始计算</p></div>
+          <div id="volumeBadge" class="volume-badge hidden"></div>
+        </div>
+        <div id="emptyState" class="empty-state"><strong>暂无测算结果</strong>结果会按已启用柜型展示</div>
+        <div id="resultTable" class="table-wrap hidden">
+          <table>
+            <thead><tr><th>柜型</th><th>可装体积</th><th>可装箱数</th><th>可装单品数</th><th>单柜运费</th><th>每箱运费</th><th>每个单品运费</th><th>预计装柜数</th><th>预计总费用</th></tr></thead>
+            <tbody id="resultBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card notes">
+      <h2>计算说明</h2>
+      <ul>
+        <li>本工具按体积估算装柜数量，未考虑重量限制、纸箱摆放方向、托盘、装柜损耗、超重、易碎品保护空间等因素。</li>
+        <li>未填写总箱数或单品数量时，预计装柜数按 1 个满柜计算；填写总货量后，预计装柜数 = 货物总体积 ÷ 柜型可装体积。</li>
+        <li>不满一柜按拼柜比例折算费用；预计总费用 = 单柜运费 × 预计装柜数，实际拼柜报价可能另含最低收费及操作费。</li>
+        <li>实际装柜数量需以货代或仓库装柜方案为准。</li>
+        <li>40GP、40HQ 的可装体积可根据货代口径自行调整。</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    const defaults = [
+      { type: '20GP', cbm: 28 },
+      { type: '40GP', cbm: 48 },
+      { type: '40HQ', cbm: 60 }
+    ];
+    const currencies = [
+      { code: 'CNY', name: '人民币', rate: 1 },
+      { code: 'USD', name: '美元', rate: 6.7818 },
+      { code: 'EUR', name: '欧元', rate: 7.7621 },
+      { code: 'GBP', name: '英镑', rate: 8.9686 },
+      { code: 'JPY', name: '日元', rate: 0.0421 },
+      { code: 'HKD', name: '港币', rate: 0.8658 },
+      { code: 'AUD', name: '澳元', rate: 4.6729 },
+      { code: 'CAD', name: '加元', rate: 4.7664 },
+      { code: 'SGD', name: '新加坡元', rate: 5.2411 }
+    ];
+    let currentMode = 'carton';
+
+    const $ = id => document.getElementById(id);
+    const containerList = $('containerList');
+    const alertBox = $('alert');
+
+    function renderContainers() {
+      const currencyOptions = currencies.map(c => `<option value="${c.code}">${c.name} ${c.code}</option>`).join('');
+      containerList.innerHTML = defaults.map((c, i) => `
+        <div class="container-row" data-type="${c.type}">
+          <label class="check-label"><input class="enabled" type="checkbox" ${i > 0 ? 'checked' : ''}>${c.type}</label>
+          <div class="field"><label>可装体积</label><div class="input-wrap"><input class="cbm" type="number" min="0" step="0.1" value="${c.cbm}"><span class="unit">CBM</span></div></div>
+          <div class="field"><label>单柜运费</label><div class="input-wrap"><input class="freight" type="number" min="0" step="0.01" placeholder="选填"></div></div>
+          <div class="field currency"><label>币种</label><select class="currency-input" aria-label="运费币种">${currencyOptions}</select></div>
+          <div class="field rate-field"><label>兑人民币汇率</label><div class="input-wrap"><input class="exchange-rate" type="number" min="0" step="0.0001" value="1"><span class="unit">CNY</span></div></div>
+        </div>`).join('');
+      containerList.querySelectorAll('.currency-input').forEach(select => select.addEventListener('change', updateRateForCurrency));
+    }
+
+    function updateRateForCurrency(event) {
+      const currency = currencies.find(c => c.code === event.target.value);
+      const rateInput = event.target.closest('.container-row').querySelector('.exchange-rate');
+      rateInput.value = currency.rate;
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        const active = btn.dataset.mode === mode;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active);
+      });
+      $('cartonFields').classList.toggle('hidden', mode !== 'carton');
+      $('itemFields').classList.toggle('hidden', mode !== 'item');
+      clearResults();
+      hideAlert();
+    }
+
+    function numericValue(id) { return Number($(id).value); }
+    function isPositiveInteger(value) { return Number.isInteger(value) && value > 0; }
+    function showAlert(message) { alertBox.textContent = message; alertBox.classList.add('show'); }
+    function hideAlert() { alertBox.classList.remove('show'); alertBox.textContent = ''; }
+
+    function clearResults() {
+      $('resultBody').innerHTML = '';
+      $('resultTable').classList.add('hidden');
+      $('emptyState').classList.remove('hidden');
+      $('volumeBadge').classList.add('hidden');
+      $('resultHint').textContent = '完成参数填写后，点击开始计算';
+    }
+
+    function getCargoData() {
+      if (currentMode === 'carton') {
+        const length = numericValue('cartonLength');
+        const width = numericValue('cartonWidth');
+        const height = numericValue('cartonHeight');
+        const perCarton = numericValue('itemsPerCarton');
+        const totalCartonsRaw = $('totalCartons').value.trim();
+        const totalItemsRaw = $('cartonTotalItems').value.trim();
+        if (![length, width, height].every(Number.isFinite) || !isPositiveInteger(perCarton) || [length, width, height].some(v => v <= 0)) {
+          throw new Error('请完整填写大于 0 的外箱尺寸，并填写正整数的每箱装货量。');
+        }
+        if (totalCartonsRaw && totalItemsRaw) throw new Error('总箱数和单品数量任选其一填写，请清空其中一项。');
+        const totalCartons = totalCartonsRaw ? Number(totalCartonsRaw) : null;
+        const totalItems = totalItemsRaw ? Number(totalItemsRaw) : null;
+        if (totalCartons !== null && !isPositiveInteger(totalCartons)) throw new Error('总箱数需要填写正整数。');
+        if (totalItems !== null && !isPositiveInteger(totalItems)) throw new Error('单品数量需要填写正整数。');
+        const unitVolume = length * width * height / 1000000;
+        if (!Number.isFinite(unitVolume) || unitVolume <= 0) throw new Error('外箱体积不能为 0，请检查尺寸。');
+        const totalVolume = totalCartons !== null
+          ? totalCartons * unitVolume
+          : totalItems !== null ? totalItems / perCarton * unitVolume : null;
+        return {
+          unitVolume,
+          perCarton,
+          totalVolume,
+          requestedCartons: totalCartons !== null ? totalCartons : totalItems !== null ? totalItems / perCarton : null,
+          requestedItems: totalCartons !== null ? totalCartons * perCarton : totalItems
+        };
+      }
+
+      const length = numericValue('itemLength');
+      const width = numericValue('itemWidth');
+      const height = numericValue('itemHeight');
+      const quantityRaw = $('itemQuantity').value.trim();
+      const quantity = quantityRaw ? Number(quantityRaw) : null;
+      if (![length, width, height].every(Number.isFinite) || [length, width, height].some(v => v <= 0)) {
+        throw new Error('请完整填写大于 0 的单品尺寸。');
+      }
+      if (quantity !== null && !isPositiveInteger(quantity)) throw new Error('单品数量需要填写正整数，或留空按单柜满柜计算。');
+      const unitVolume = length * width * height / 1000000;
+      if (!Number.isFinite(unitVolume) || unitVolume <= 0) throw new Error('单品体积不能为 0，请检查尺寸。');
+      return { unitVolume, quantity, totalVolume: quantity === null ? null : unitVolume * quantity, requestedItems: quantity };
+    }
+
+    function getContainers() {
+      const rows = [...document.querySelectorAll('.container-row')].filter(row => row.querySelector('.enabled').checked);
+      if (!rows.length) throw new Error('请至少启用一个柜型。');
+      return rows.map(row => {
+        const cbm = Number(row.querySelector('.cbm').value);
+        const freightRaw = row.querySelector('.freight').value.trim();
+        const freight = freightRaw === '' ? null : Number(freightRaw);
+        const currency = row.querySelector('.currency-input').value;
+        const rate = Number(row.querySelector('.exchange-rate').value);
+        if (!Number.isFinite(cbm) || cbm <= 0) throw new Error(`请填写 ${row.dataset.type} 大于 0 的可装体积。`);
+        if (freight !== null && (!Number.isFinite(freight) || freight < 0)) throw new Error(`${row.dataset.type} 的运费不能小于 0。`);
+        if (!Number.isFinite(rate) || rate <= 0) throw new Error(`请填写 ${row.dataset.type} 大于 0 的兑人民币汇率。`);
+        return { type: row.dataset.type, cbm, freight, currency, rate };
+      });
+    }
+
+    const formatCount = value => value.toLocaleString('zh-CN');
+    const formatMoney = (value, currency, rate) => {
+      const original = `${currency} ${value.toFixed(4)}`;
+      if (currency === 'CNY') return `¥ ${value.toFixed(4)}`;
+      return `${original}<span class="money-sub">≈ ¥ ${(value * rate).toFixed(4)}</span>`;
+    };
+
+    function calculate() {
+      hideAlert();
+      try {
+        const cargo = getCargoData();
+        const containers = getContainers();
+        const rows = containers.map(c => {
+          const itemCount = Math.floor(c.cbm / cargo.unitVolume);
+          const cartonCount = currentMode === 'carton' ? itemCount : null;
+          const actualItems = currentMode === 'carton' ? cartonCount * cargo.perCarton : itemCount;
+          const freightMissing = c.freight === null;
+          const noCapacity = actualItems <= 0;
+          const estimatedContainers = cargo.totalVolume === null ? 1 : cargo.totalVolume / c.cbm;
+          const containerFreight = freightMissing ? '<span class="not-filled">未填写</span>' : formatMoney(c.freight, c.currency, c.rate);
+          const cartonFreight = currentMode === 'item' ? '-' : freightMissing ? '<span class="not-filled">未填写</span>' : noCapacity ? '-' : formatMoney(c.freight / cartonCount, c.currency, c.rate);
+          const itemFreight = freightMissing ? '<span class="not-filled">未填写</span>' : noCapacity ? '-' : formatMoney(c.freight / actualItems, c.currency, c.rate);
+          const estimatedLabel = `${estimatedContainers.toFixed(4)} 柜${estimatedContainers < 1 ? '<span class="money-sub">拼柜计费</span>' : ''}`;
+          const estimatedFee = freightMissing ? '<span class="not-filled">未填写</span>' : formatMoney(c.freight * estimatedContainers, c.currency, c.rate);
+          return `<tr><td>${c.type}</td><td>${c.cbm.toFixed(2)} CBM</td><td class="important">${cartonCount === null ? '-' : formatCount(cartonCount)}</td><td class="important">${formatCount(actualItems)}</td><td>${containerFreight}</td><td>${cartonFreight}</td><td>${itemFreight}</td><td class="important">${estimatedLabel}</td><td class="important">${estimatedFee}</td></tr>`;
+        }).join('');
+
+        $('resultBody').innerHTML = rows;
+        $('emptyState').classList.add('hidden');
+        $('resultTable').classList.remove('hidden');
+        $('resultHint').textContent = cargo.totalVolume === null
+          ? `已计算 ${containers.length} 个启用柜型 · 按单柜满柜`
+          : `已计算 ${containers.length} 个启用柜型 · 按实际货量（含拼柜）`;
+        const badge = $('volumeBadge');
+        badge.textContent = currentMode === 'carton'
+          ? `单箱 ${cargo.unitVolume.toFixed(6)} m³${cargo.totalVolume === null ? '' : ` · 货物总体积 ${cargo.totalVolume.toFixed(4)} m³`}`
+          : `单品 ${cargo.unitVolume.toFixed(6)} m³${cargo.totalVolume === null ? '' : ` · 货物总体积 ${cargo.totalVolume.toFixed(4)} m³`}`;
+        badge.classList.remove('hidden');
+      } catch (error) {
+        clearResults();
+        showAlert(error.message);
+      }
+    }
+
+    function fillExample() {
+      setMode('carton');
+      $('cartonLength').value = 51;
+      $('cartonWidth').value = 34;
+      $('cartonHeight').value = 27;
+      $('itemsPerCarton').value = 24;
+      $('totalCartons').value = '';
+      $('cartonTotalItems').value = '';
+      document.querySelectorAll('.container-row').forEach(row => {
+        row.querySelector('.enabled').checked = row.dataset.type !== '20GP';
+        row.querySelector('.freight').value = '';
+        row.querySelector('.currency-input').value = 'CNY';
+        row.querySelector('.exchange-rate').value = 1;
+        row.querySelector('.cbm').value = defaults.find(c => c.type === row.dataset.type).cbm;
+      });
+      calculate();
+    }
+
+    function resetAll() {
+      document.querySelectorAll('#cartonFields input, #itemFields input').forEach(input => input.value = '');
+      renderContainers();
+      setMode('carton');
+      hideAlert();
+    }
+
+    renderContainers();
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+    $('calculateBtn').addEventListener('click', calculate);
+    $('exampleBtn').addEventListener('click', fillExample);
+    $('resetBtn').addEventListener('click', resetAll);
+    document.addEventListener('keydown', event => { if (event.key === 'Enter' && event.target.matches('input')) calculate(); });
+  </script>
+</body>
+</html>
