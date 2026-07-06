@@ -1,530 +1,344 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>装柜计算器</title>
-  <style>
-    :root {
-      --primary: #176b5b;
-      --primary-dark: #105448;
-      --primary-soft: #e9f5f2;
-      --ink: #1c2b28;
-      --muted: #667a75;
-      --line: #dce7e4;
-      --surface: #ffffff;
-      --bg: #f3f7f6;
-      --danger: #b42318;
-      --shadow: 0 10px 32px rgba(25, 72, 62, .07);
-      --radius: 18px;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      color: var(--ink);
-      background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      line-height: 1.5;
-    }
-
-    button, input, select { font: inherit; }
-
-    .page {
-      width: min(1160px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 46px 0 40px;
-    }
-
-    .hero { width: min(100%, 1000px); margin: 0 auto 26px; }
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-      color: var(--primary);
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: .08em;
-    }
-    .eyebrow::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #2ca58d;
-      box-shadow: 0 0 0 5px #dff3ee;
-    }
-    h1 { margin: 0; font-size: clamp(30px, 4vw, 44px); letter-spacing: -.04em; }
-    .subtitle { margin: 9px 0 0; color: var(--muted); font-size: 15px; }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1000px);
-      gap: 22px;
-      align-items: start;
-      justify-content: center;
-    }
-    .stack { display: contents; }
-    .card {
-      width: min(100%, 1000px);
-      background: var(--surface);
-      border: 1px solid rgba(208, 225, 220, .9);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 24px;
-    }
-    .card-title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    h2 { margin: 0; font-size: 18px; letter-spacing: -.01em; }
-    .step {
-      display: inline-grid;
-      place-items: center;
-      width: 28px;
-      height: 28px;
-      margin-right: 9px;
-      border-radius: 9px;
-      color: #fff;
-      background: var(--primary);
-      font-size: 13px;
-    }
-
-    .segmented {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-      padding: 5px;
-      margin-bottom: 22px;
-      border-radius: 13px;
-      background: #eff4f2;
-    }
-    .mode-btn {
-      border: 0;
-      border-radius: 9px;
-      padding: 11px 10px;
-      color: var(--muted);
-      background: transparent;
-      cursor: pointer;
-      font-weight: 650;
-    }
-    .mode-btn.active { color: var(--primary-dark); background: #fff; box-shadow: 0 2px 10px rgba(28, 67, 59, .09); }
-
-    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; }
-    .field label { display: block; margin-bottom: 7px; color: #42554f; font-size: 13px; font-weight: 650; }
-    .input-wrap { position: relative; }
-    input[type="number"], input[type="text"], select {
-      width: 100%;
-      min-height: 45px;
-      padding: 10px 50px 10px 12px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      color: var(--ink);
-      background: #fbfdfc;
-      outline: none;
-      transition: border-color .18s, box-shadow .18s;
-    }
-    input:focus, select:focus { border-color: #55a998; box-shadow: 0 0 0 3px rgba(44, 165, 141, .12); }
-    .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #81918d; font-size: 12px; pointer-events: none; }
-    .hidden { display: none !important; }
-
-    .container-list { display: grid; gap: 12px; }
-    .container-row {
-      display: grid;
-      grid-template-columns: 76px repeat(3, minmax(0, 1fr)) 140px minmax(0, 1fr);
-      gap: 12px;
-      align-items: end;
-      padding: 15px;
-      border: 1px solid var(--line);
-      border-radius: 13px;
-      background: #fbfdfc;
-    }
-    .check-label { display: flex; align-items: center; gap: 9px; min-height: 45px; font-weight: 750; cursor: pointer; }
-    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
-    .container-row .field label { font-size: 12px; }
-    .container-row input { min-height: 42px; }
-    .container-row .freight { padding-right: 8px; }
-    .container-row .currency { min-width: 140px; }
-    .currency select {
-      min-width: 140px;
-      padding-right: 28px;
-      appearance: none;
-      -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.25 6 7.75l3.5-3.5' fill='none' stroke='%23667a75' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 8px center;
-    }
-    .container-row .rate-field { width: auto; min-width: 0; }
-    .rate-note { margin: 12px 2px 0; color: var(--muted); font-size: 12px; }
-    .money-sub { display: block; margin-top: 3px; color: var(--primary); font-size: 11px; font-weight: 700; }
-
-    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-    .btn {
-      min-height: 44px;
-      border: 1px solid transparent;
-      border-radius: 11px;
-      padding: 10px 18px;
-      cursor: pointer;
-      font-weight: 700;
-      transition: transform .15s, background .15s;
-    }
-    .btn:active { transform: translateY(1px); }
-    .btn-primary { flex: 1; color: #fff; background: var(--primary); }
-    .btn-primary:hover { background: var(--primary-dark); }
-    .btn-secondary { color: var(--primary-dark); border-color: #bcd6d0; background: #f7fbfa; }
-    .btn-ghost { color: var(--muted); background: transparent; }
-
-    .alert {
-      display: none;
-      margin-top: 16px;
-      padding: 11px 13px;
-      border-radius: 10px;
-      color: var(--danger);
-      background: #fff0ee;
-      font-size: 13px;
-    }
-    .alert.show { display: block; }
-
-    .results { margin-top: 22px; }
-    .results-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
-    .results-head p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
-    .volume-badge { flex: none; padding: 8px 11px; border-radius: 9px; color: var(--primary-dark); background: var(--primary-soft); font-size: 12px; font-weight: 700; }
-    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
-    table { width: 100%; min-width: 1420px; border-collapse: collapse; }
-    th, td { padding: 15px 14px; border-bottom: 1px solid #e6eeec; text-align: right; white-space: nowrap; font-size: 13px; }
-    th { color: #536762; background: #f7faf9; font-size: 12px; font-weight: 700; }
-    th:first-child, td:first-child { position: sticky; left: 0; text-align: left; }
-    th:first-child { z-index: 2; background: #f7faf9; }
-    td:first-child { z-index: 1; background: #fff; font-weight: 800; color: var(--primary-dark); }
-    tbody tr:last-child td { border-bottom: 0; }
-    .important { font-size: 14px; font-weight: 800; color: #132d27; }
-    .not-filled { color: #8a9894; }
-    .empty-state { padding: 38px 18px; text-align: center; color: var(--muted); border: 1px dashed #cbdad6; border-radius: 14px; background: rgba(255,255,255,.55); }
-    .empty-state strong { display: block; margin-bottom: 4px; color: #526661; }
-
-    .notes { margin: 22px auto 0; }
-    .notes ul { margin: 14px 0 0; padding-left: 20px; color: var(--muted); }
-    .notes li + li { margin-top: 7px; }
-
-    @media (max-width: 900px) {
-      .container-row { grid-template-columns: 76px repeat(3, minmax(0, 1fr)) 140px minmax(0, 1fr); }
-    }
-    @media (max-width: 620px) {
-      .page { width: min(100% - 22px, 1160px); padding-top: 27px; }
-      .card { padding: 18px; border-radius: 15px; }
-      .fields { grid-template-columns: 1fr; }
-      .container-row { grid-template-columns: 1fr 1fr; }
-      .check-label { grid-column: 1 / -1; min-height: auto; }
-      .container-row .rate-field { grid-column: 1 / -1; width: 100%; }
-      .actions .btn-primary { flex-basis: 100%; }
-      .results-head { align-items: flex-start; flex-direction: column; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>跨境物流仓储费用测算器</title>
+<style>
+:root{--p:#176b5b;--pd:#0e5145;--ps:#e9f5f2;--ink:#1d2d29;--muted:#687b76;--line:#dbe7e3;--bg:#f3f7f6;--bad:#b42318;--warn:#9b6100;--shadow:0 10px 30px #19483e12}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}button,input,select{font:inherit}.page{width:min(100% - 24px,1000px);margin:auto;padding:36px 0}.hero{margin-bottom:24px}.eyebrow{color:var(--p);font-size:12px;font-weight:800;letter-spacing:.12em}.hero h1{margin:7px 0 5px;font-size:clamp(28px,4vw,42px);letter-spacing:-.04em}.hero p{margin:0;color:var(--muted)}.stack{display:grid;gap:20px}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow)}.title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.title h2{margin:0;font-size:18px}.step{display:inline-grid;place-items:center;width:28px;height:28px;margin-right:9px;border-radius:9px;background:var(--p);color:#fff;font-size:12px}.hint{color:var(--muted);font-size:12px}.seg{display:flex;gap:5px;padding:5px;margin-bottom:18px;background:#eef4f2;border-radius:12px}.seg button{flex:1;border:0;border-radius:8px;padding:10px;background:transparent;color:var(--muted);font-weight:700;cursor:pointer}.seg button.active{background:#fff;color:var(--pd);box-shadow:0 2px 8px #174a3f16}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.field label{display:block;margin-bottom:6px;color:#435650;font-size:12px;font-weight:700}.field input,.field select{width:100%;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fbfdfc;color:var(--ink);outline:0}.field input:focus,.field select:focus{border-color:#58a999;box-shadow:0 0 0 3px #2ca58d1f}.hidden{display:none!important}.metric{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.metric div{padding:12px;border-radius:11px;background:var(--ps)}.metric small{display:block;color:var(--muted)}.metric b{font-size:15px;color:var(--pd)}.mode-box{padding:11px 13px;border-radius:10px;background:#f6faf8;color:var(--pd);font-weight:700}.quote-list{display:grid;gap:12px}.quote{border:1px solid var(--line);border-radius:13px;padding:15px;background:#fbfdfc}.quote-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:12px}.quote-head b{color:var(--pd)}.tag{display:inline-block;margin:2px;padding:3px 7px;border-radius:20px;background:var(--ps);color:var(--pd);font-size:11px;font-weight:800}.tag.gold{background:#fff2cc;color:#835b00}.tag.red{background:#ffebe8;color:#a92d22}.quote-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}.source{margin-top:9px;color:var(--muted);font-size:11px}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.btn{border:1px solid transparent;border-radius:10px;padding:10px 17px;font-weight:750;cursor:pointer}.primary{background:var(--p);color:#fff}.secondary{background:#f4faf8;border-color:#b9d5cf;color:var(--pd)}.ghost{background:transparent;color:var(--muted)}.alert{display:none;margin-top:13px;padding:10px 12px;border-radius:9px;background:#fff1ef;color:var(--bad)}.alert.show{display:block}.empty{padding:32px;text-align:center;border:1px dashed #c5d7d2;border-radius:13px;color:var(--muted)}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px}table{width:100%;min-width:1450px;border-collapse:collapse}th,td{padding:12px;border-bottom:1px solid #e7eeec;white-space:nowrap;text-align:right;font-size:12px}th{position:sticky;top:0;background:#f6faf8;color:#536661;z-index:1}th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:2}th:first-child{background:#f6faf8}.sub{display:block;color:var(--muted);font-size:10px}.notice{margin-top:12px;color:var(--warn);font-size:12px}.notes{margin:0;padding-left:20px;color:var(--muted)}.notes li+li{margin-top:6px}@media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.quote-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.metric{grid-template-columns:repeat(2,1fr)}.card{padding:18px}}@media(max-width:520px){.grid,.quote-grid,.metric{grid-template-columns:1fr}.seg{flex-direction:column}.page{width:min(100% - 16px,1000px);padding-top:22px}}
+.page{width:min(100% - 24px,1500px)}.field .select-help{display:block;margin-top:4px;color:var(--muted);font-size:11px}.multi-dropdown{position:relative}.multi-toggle{width:100%;height:42px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fbfdfc;color:var(--ink);cursor:pointer;text-align:left}.multi-toggle span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.multi-menu{display:none;position:absolute;z-index:20;top:46px;left:0;width:min(520px,90vw);max-height:310px;overflow:auto;padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 12px 30px #173d3526}.multi-dropdown.open .multi-menu{display:block}.multi-search{position:sticky;top:0;z-index:1;width:100%;height:38px;margin-bottom:6px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;background:#fff}.multi-option{display:flex;align-items:flex-start;gap:8px;padding:8px;border-radius:7px;cursor:pointer}.multi-option:hover{background:var(--ps)}.multi-option input{width:16px;height:16px;min-height:auto;margin-top:2px}.multi-option span{font-size:12px}@media(max-width:520px){.page{width:min(100% - 16px,1500px)}}
+.result-cost{font-size:16px!important;font-weight:850!important;color:var(--pd)!important;background:var(--ps)!important}.product-info{margin-top:18px;padding-top:16px;border-top:1px dashed var(--line)}.check-grid{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.check-item{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfdfc;cursor:pointer}.check-item input{width:16px;height:16px}.inference{margin-top:12px;padding:11px 13px;border-radius:10px;background:var(--ps);color:var(--pd)}.inference.high{background:#ffebe8;color:var(--bad)}.inference.medium{background:#fff5db;color:#8b5a00}
+table{min-width:1850px!important}
+.warehouse-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.template-editors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}.template-editor{border:1px solid var(--line);border-radius:12px;background:#fbfdfc;padding:12px}.template-editor summary{cursor:pointer;color:var(--pd);font-weight:800}.template-editor .grid{margin-top:12px;grid-template-columns:repeat(3,minmax(0,1fr))}.template-rule{padding-top:9px;margin-top:9px;border-top:1px dashed var(--line)}.warehouse-actions{display:flex;gap:9px;margin:16px 0}.warehouse-table table{min-width:1100px!important}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.summary-grid div{padding:16px;border-radius:12px;background:var(--ps)}.summary-grid small{display:block;color:var(--muted)}.summary-grid b{font-size:20px;color:var(--pd)}@media(max-width:800px){.warehouse-controls,.template-editors,.summary-grid{grid-template-columns:1fr}.template-editor .grid{grid-template-columns:repeat(2,1fr)}}
+html,body{width:100%;max-width:100%;overflow-x:hidden}.page{width:min(calc(100vw - 24px),1500px);max-width:1500px;margin-inline:auto}.card{width:100%;max-width:100%;margin-inline:auto}.table-wrap{max-width:100%;overflow:visible}table,.warehouse-table table{width:100%!important;min-width:0!important;table-layout:fixed}th,td{padding:8px 5px;white-space:normal;overflow-wrap:anywhere;word-break:break-word;font-size:10px}.package-source{grid-column:1/-1;margin-top:-4px}@media(max-width:900px){.page{width:calc(100vw - 16px)}.card{padding:16px}th,td{padding:6px 3px;font-size:9px}.result-cost{font-size:13px!important}}
+.share-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}.share-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}.quote-preview{display:block;width:min(100%,900px);margin:16px auto 0;border:1px solid var(--line);border-radius:12px}.fee-nowrap{white-space:nowrap!important}@media(max-width:700px){.share-controls{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-  <main class="page">
-    <header class="hero">
-      <div class="eyebrow">LOGISTICS TOOL</div>
-      <h1>装柜计算器</h1>
-      <p class="subtitle">输入商品参数，快速估算各柜型装载量与单位海运成本。</p>
-    </header>
-
-    <section class="layout">
-      <div class="stack">
-        <div class="card">
-          <div class="card-title-row"><h2><span class="step">1</span>货物参数</h2></div>
-          <div class="segmented" role="tablist" aria-label="计算方式">
-            <button class="mode-btn active" type="button" data-mode="carton" role="tab" aria-selected="true">按外箱尺寸计算</button>
-            <button class="mode-btn" type="button" data-mode="item" role="tab" aria-selected="false">按单品尺寸计算</button>
-          </div>
-
-          <div id="cartonFields" class="fields">
-            <div class="field"><label for="cartonLength">外箱长</label><div class="input-wrap"><input id="cartonLength" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
-            <div class="field"><label for="cartonWidth">外箱宽</label><div class="input-wrap"><input id="cartonWidth" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
-            <div class="field"><label for="cartonHeight">外箱高</label><div class="input-wrap"><input id="cartonHeight" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
-            <div class="field"><label for="itemsPerCarton">每箱装货量</label><div class="input-wrap"><input id="itemsPerCarton" type="number" min="1" step="1" placeholder="请输入"><span class="unit">个/箱</span></div></div>
-            <div class="field"><label for="totalCartons">总箱数（选填）</label><div class="input-wrap"><input id="totalCartons" type="number" min="1" step="1" placeholder="与单品数量任选其一"><span class="unit">箱</span></div></div>
-            <div class="field"><label for="cartonTotalItems">单品数量（选填）</label><div class="input-wrap"><input id="cartonTotalItems" type="number" min="1" step="1" placeholder="与总箱数任选其一"><span class="unit">个</span></div></div>
-          </div>
-
-          <div id="itemFields" class="fields hidden">
-            <div class="field"><label for="itemLength">单品长</label><div class="input-wrap"><input id="itemLength" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
-            <div class="field"><label for="itemWidth">单品宽</label><div class="input-wrap"><input id="itemWidth" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
-            <div class="field"><label for="itemHeight">单品高</label><div class="input-wrap"><input id="itemHeight" type="number" min="0" step="0.01" placeholder="请输入"><span class="unit">cm</span></div></div>
-            <div class="field"><label for="itemQuantity">单品数量（选填）</label><div class="input-wrap"><input id="itemQuantity" type="number" min="1" step="1" placeholder="不填则按单柜满柜"><span class="unit">个</span></div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title-row"><h2><span class="step">2</span>柜型参数</h2></div>
-          <div id="containerList" class="container-list"></div>
-          <p class="rate-note">参考汇率：2026-07-03 市场汇率，表示 1 单位外币可兑换的人民币金额；可按实际结算汇率修改。</p>
-          <div class="actions">
-            <button id="calculateBtn" type="button" class="btn btn-primary">开始计算</button>
-            <button id="exampleBtn" type="button" class="btn btn-secondary">填入示例</button>
-            <button id="resetBtn" type="button" class="btn btn-ghost">清空</button>
-          </div>
-          <div id="alert" class="alert" role="alert"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="results-head">
-          <div><h2><span class="step">3</span>测算结果</h2><p id="resultHint">完成参数填写后，点击开始计算</p></div>
-          <div id="volumeBadge" class="volume-badge hidden"></div>
-        </div>
-        <div id="emptyState" class="empty-state"><strong>暂无测算结果</strong>结果会按已启用柜型展示</div>
-        <div id="resultTable" class="table-wrap hidden">
-          <table>
-            <thead><tr><th>柜型</th><th>可装体积</th><th>可装箱数</th><th>可装单品数</th><th>单柜运费</th><th>每立方运费</th><th>每箱运费</th><th>每个单品运费</th><th>运输方式</th><th>预计装柜数</th><th>预计总费用</th></tr></thead>
-            <tbody id="resultBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="card notes">
-      <h2>计算说明</h2>
-      <ul>
-        <li>本工具按体积估算装柜数量，未考虑重量限制、纸箱摆放方向、托盘、装柜损耗、超重、易碎品保护空间等因素。</li>
-        <li>未填写总箱数或单品数量时，预计装柜数按 1 个满柜计算；填写总货量后，预计装柜数 = 货物总体积 ÷ 柜型可装体积。</li>
-        <li>不满一柜按“货物体积 × 每立方运费”计算；整柜按“整柜数 × 单柜运费”计算；有整柜又有尾量时，两部分分别计费后相加。</li>
-        <li>单柜运费和每立方运费只填一项时，系统会按柜型可装体积自动折算另一项作为参考；实际拼柜报价可能另含最低收费及操作费。</li>
-        <li>实际装柜数量需以货代或仓库装柜方案为准。</li>
-        <li>40GP、40HQ 的可装体积可根据货代口径自行调整。</li>
-      </ul>
-    </section>
-  </main>
-
-  <script>
-    const defaults = [
-      { type: '20GP', cbm: 28 },
-      { type: '40GP', cbm: 48 },
-      { type: '40HQ', cbm: 60 }
-    ];
-    const currencies = [
-      { code: 'CNY', name: '人民币', rate: 1 },
-      { code: 'USD', name: '美元', rate: 6.7818 },
-      { code: 'EUR', name: '欧元', rate: 7.7621 },
-      { code: 'GBP', name: '英镑', rate: 8.9686 },
-      { code: 'JPY', name: '日元', rate: 0.0421 },
-      { code: 'HKD', name: '港币', rate: 0.8658 },
-      { code: 'AUD', name: '澳元', rate: 4.6729 },
-      { code: 'CAD', name: '加元', rate: 4.7664 },
-      { code: 'SGD', name: '新加坡元', rate: 5.2411 }
-    ];
-    let currentMode = 'carton';
-
-    const $ = id => document.getElementById(id);
-    const containerList = $('containerList');
-    const alertBox = $('alert');
-
-    function renderContainers() {
-      const currencyOptions = currencies.map(c => `<option value="${c.code}">${c.name} ${c.code}</option>`).join('');
-      containerList.innerHTML = defaults.map((c, i) => `
-        <div class="container-row" data-type="${c.type}">
-          <label class="check-label"><input class="enabled" type="checkbox" ${i > 0 ? 'checked' : ''}>${c.type}</label>
-          <div class="field"><label>可装体积</label><div class="input-wrap"><input class="cbm" type="number" min="0" step="0.1" value="${c.cbm}"><span class="unit">CBM</span></div></div>
-          <div class="field"><label>单柜运费</label><div class="input-wrap"><input class="freight" type="number" min="0" step="0.01" placeholder="选填"></div></div>
-          <div class="field"><label>每立方运费</label><div class="input-wrap"><input class="cbm-freight freight" type="number" min="0" step="0.01" placeholder="选填"></div></div>
-          <div class="field currency"><label>币种</label><select class="currency-input" aria-label="运费币种">${currencyOptions}</select></div>
-          <div class="field rate-field"><label>兑人民币汇率</label><div class="input-wrap"><input class="exchange-rate" type="number" min="0" step="0.0001" value="1"><span class="unit">CNY</span></div></div>
-        </div>`).join('');
-      containerList.querySelectorAll('.currency-input').forEach(select => select.addEventListener('change', updateRateForCurrency));
-    }
-
-    function updateRateForCurrency(event) {
-      const currency = currencies.find(c => c.code === event.target.value);
-      const rateInput = event.target.closest('.container-row').querySelector('.exchange-rate');
-      rateInput.value = currency.rate;
-    }
-
-    function setMode(mode) {
-      currentMode = mode;
-      document.querySelectorAll('.mode-btn').forEach(btn => {
-        const active = btn.dataset.mode === mode;
-        btn.classList.toggle('active', active);
-        btn.setAttribute('aria-selected', active);
-      });
-      $('cartonFields').classList.toggle('hidden', mode !== 'carton');
-      $('itemFields').classList.toggle('hidden', mode !== 'item');
-      clearResults();
-      hideAlert();
-    }
-
-    function numericValue(id) { return Number($(id).value); }
-    function isPositiveInteger(value) { return Number.isInteger(value) && value > 0; }
-    function showAlert(message) { alertBox.textContent = message; alertBox.classList.add('show'); }
-    function hideAlert() { alertBox.classList.remove('show'); alertBox.textContent = ''; }
-
-    function clearResults() {
-      $('resultBody').innerHTML = '';
-      $('resultTable').classList.add('hidden');
-      $('emptyState').classList.remove('hidden');
-      $('volumeBadge').classList.add('hidden');
-      $('resultHint').textContent = '完成参数填写后，点击开始计算';
-    }
-
-    function getCargoData() {
-      if (currentMode === 'carton') {
-        const length = numericValue('cartonLength');
-        const width = numericValue('cartonWidth');
-        const height = numericValue('cartonHeight');
-        const perCarton = numericValue('itemsPerCarton');
-        const totalCartonsRaw = $('totalCartons').value.trim();
-        const totalItemsRaw = $('cartonTotalItems').value.trim();
-        if (![length, width, height].every(Number.isFinite) || !isPositiveInteger(perCarton) || [length, width, height].some(v => v <= 0)) {
-          throw new Error('请完整填写大于 0 的外箱尺寸，并填写正整数的每箱装货量。');
-        }
-        if (totalCartonsRaw && totalItemsRaw) throw new Error('总箱数和单品数量任选其一填写，请清空其中一项。');
-        const totalCartons = totalCartonsRaw ? Number(totalCartonsRaw) : null;
-        const totalItems = totalItemsRaw ? Number(totalItemsRaw) : null;
-        if (totalCartons !== null && !isPositiveInteger(totalCartons)) throw new Error('总箱数需要填写正整数。');
-        if (totalItems !== null && !isPositiveInteger(totalItems)) throw new Error('单品数量需要填写正整数。');
-        const unitVolume = length * width * height / 1000000;
-        if (!Number.isFinite(unitVolume) || unitVolume <= 0) throw new Error('外箱体积不能为 0，请检查尺寸。');
-        const totalVolume = totalCartons !== null
-          ? totalCartons * unitVolume
-          : totalItems !== null ? totalItems / perCarton * unitVolume : null;
-        return {
-          unitVolume,
-          perCarton,
-          totalVolume,
-          requestedCartons: totalCartons !== null ? totalCartons : totalItems !== null ? totalItems / perCarton : null,
-          requestedItems: totalCartons !== null ? totalCartons * perCarton : totalItems
-        };
-      }
-
-      const length = numericValue('itemLength');
-      const width = numericValue('itemWidth');
-      const height = numericValue('itemHeight');
-      const quantityRaw = $('itemQuantity').value.trim();
-      const quantity = quantityRaw ? Number(quantityRaw) : null;
-      if (![length, width, height].every(Number.isFinite) || [length, width, height].some(v => v <= 0)) {
-        throw new Error('请完整填写大于 0 的单品尺寸。');
-      }
-      if (quantity !== null && !isPositiveInteger(quantity)) throw new Error('单品数量需要填写正整数，或留空按单柜满柜计算。');
-      const unitVolume = length * width * height / 1000000;
-      if (!Number.isFinite(unitVolume) || unitVolume <= 0) throw new Error('单品体积不能为 0，请检查尺寸。');
-      return { unitVolume, quantity, totalVolume: quantity === null ? null : unitVolume * quantity, requestedItems: quantity };
-    }
-
-    function getContainers() {
-      const rows = [...document.querySelectorAll('.container-row')].filter(row => row.querySelector('.enabled').checked);
-      if (!rows.length) throw new Error('请至少启用一个柜型。');
-      return rows.map(row => {
-        const cbm = Number(row.querySelector('.cbm').value);
-        const freightRaw = row.querySelector('.freight').value.trim();
-        const freight = freightRaw === '' ? null : Number(freightRaw);
-        const cbmFreightRaw = row.querySelector('.cbm-freight').value.trim();
-        const cbmFreight = cbmFreightRaw === '' ? null : Number(cbmFreightRaw);
-        const currency = row.querySelector('.currency-input').value;
-        const rate = Number(row.querySelector('.exchange-rate').value);
-        if (!Number.isFinite(cbm) || cbm <= 0) throw new Error(`请填写 ${row.dataset.type} 大于 0 的可装体积。`);
-        if (freight !== null && (!Number.isFinite(freight) || freight < 0)) throw new Error(`${row.dataset.type} 的运费不能小于 0。`);
-        if (cbmFreight !== null && (!Number.isFinite(cbmFreight) || cbmFreight < 0)) throw new Error(`${row.dataset.type} 的每立方运费不能小于 0。`);
-        if (!Number.isFinite(rate) || rate <= 0) throw new Error(`请填写 ${row.dataset.type} 大于 0 的兑人民币汇率。`);
-        return { type: row.dataset.type, cbm, freight, cbmFreight, currency, rate };
-      });
-    }
-
-    const formatCount = value => value.toLocaleString('zh-CN');
-    const formatMoney = (value, currency, rate) => {
-      const original = `${currency} ${value.toFixed(4)}`;
-      if (currency === 'CNY') return `¥ ${value.toFixed(4)}`;
-      return `${original}<span class="money-sub">≈ ¥ ${(value * rate).toFixed(4)}</span>`;
-    };
-    const formatFreight = (value, currency, rate, derivedText = '') => {
-      if (value === null) return '<span class="not-filled">未填写</span>';
-      return `${formatMoney(value, currency, rate)}${derivedText ? `<span class="money-sub">${derivedText}</span>` : ''}`;
-    };
-
-    function calculate() {
-      hideAlert();
-      try {
-        const cargo = getCargoData();
-        const containers = getContainers();
-        const rows = containers.map(c => {
-          const itemCount = Math.floor(c.cbm / cargo.unitVolume);
-          const cartonCount = currentMode === 'carton' ? itemCount : null;
-          const actualItems = currentMode === 'carton' ? cartonCount * cargo.perCarton : itemCount;
-          const effectiveContainerFreight = c.freight ?? (c.cbmFreight === null ? null : c.cbmFreight * c.cbm);
-          const effectiveCbmFreight = c.cbmFreight ?? (c.freight === null ? null : c.freight / c.cbm);
-          const freightMissing = effectiveContainerFreight === null;
-          const noCapacity = actualItems <= 0;
-          const shipmentVolume = cargo.totalVolume === null ? c.cbm : cargo.totalVolume;
-          const estimatedContainers = shipmentVolume / c.cbm;
-          let fullContainers = Math.floor(shipmentVolume / c.cbm);
-          let remainderVolume = shipmentVolume - fullContainers * c.cbm;
-          if (remainderVolume < 1e-8 || c.cbm - remainderVolume < 1e-8) {
-            if (c.cbm - remainderVolume < 1e-8) fullContainers += 1;
-            remainderVolume = 0;
-          }
-          const shippingMode = fullContainers === 0 ? '拼柜' : remainderVolume > 0 ? '整柜＋拼柜' : '整柜';
-          const containerFreight = formatFreight(effectiveContainerFreight, c.currency, c.rate, c.freight === null && effectiveContainerFreight !== null ? '按每立方运费折算' : '');
-          const cbmFreight = formatFreight(effectiveCbmFreight, c.currency, c.rate, c.cbmFreight === null && effectiveCbmFreight !== null ? '按单柜运费折算' : '');
-          const cartonFreight = currentMode === 'item' ? '-' : freightMissing ? '<span class="not-filled">未填写</span>' : noCapacity ? '-' : formatMoney(effectiveContainerFreight / cartonCount, c.currency, c.rate);
-          const itemFreight = freightMissing ? '<span class="not-filled">未填写</span>' : noCapacity ? '-' : formatMoney(effectiveContainerFreight / actualItems, c.currency, c.rate);
-          const estimatedLabel = `${estimatedContainers.toFixed(4)} 柜`;
-          const totalFee = freightMissing ? null : fullContainers * effectiveContainerFreight + remainderVolume * effectiveCbmFreight;
-          const estimatedFee = totalFee === null ? '<span class="not-filled">未填写</span>' : formatMoney(totalFee, c.currency, c.rate);
-          return `<tr><td>${c.type}</td><td>${c.cbm.toFixed(2)} CBM</td><td class="important">${cartonCount === null ? '-' : formatCount(cartonCount)}</td><td class="important">${formatCount(actualItems)}</td><td>${containerFreight}</td><td>${cbmFreight}</td><td>${cartonFreight}</td><td>${itemFreight}</td><td class="important">${shippingMode}</td><td class="important">${estimatedLabel}</td><td class="important">${estimatedFee}</td></tr>`;
-        }).join('');
-
-        $('resultBody').innerHTML = rows;
-        $('emptyState').classList.add('hidden');
-        $('resultTable').classList.remove('hidden');
-        $('resultHint').textContent = cargo.totalVolume === null
-          ? `已计算 ${containers.length} 个启用柜型 · 按单柜满柜`
-          : `已计算 ${containers.length} 个启用柜型 · 按实际货量（含拼柜）`;
-        const badge = $('volumeBadge');
-        badge.textContent = currentMode === 'carton'
-          ? `单箱 ${cargo.unitVolume.toFixed(6)} m³${cargo.totalVolume === null ? '' : ` · 货物总体积 ${cargo.totalVolume.toFixed(4)} m³`}`
-          : `单品 ${cargo.unitVolume.toFixed(6)} m³${cargo.totalVolume === null ? '' : ` · 货物总体积 ${cargo.totalVolume.toFixed(4)} m³`}`;
-        badge.classList.remove('hidden');
-      } catch (error) {
-        clearResults();
-        showAlert(error.message);
-      }
-    }
-
-    function fillExample() {
-      setMode('carton');
-      $('cartonLength').value = 51;
-      $('cartonWidth').value = 34;
-      $('cartonHeight').value = 27;
-      $('itemsPerCarton').value = 24;
-      $('totalCartons').value = '';
-      $('cartonTotalItems').value = '';
-      document.querySelectorAll('.container-row').forEach(row => {
-        row.querySelector('.enabled').checked = row.dataset.type !== '20GP';
-        row.querySelector('.freight').value = '';
-        row.querySelector('.cbm-freight').value = '';
-        row.querySelector('.currency-input').value = 'CNY';
-        row.querySelector('.exchange-rate').value = 1;
-        row.querySelector('.cbm').value = defaults.find(c => c.type === row.dataset.type).cbm;
-      });
-      calculate();
-    }
-
-    function resetAll() {
-      document.querySelectorAll('#cartonFields input, #itemFields input').forEach(input => input.value = '');
-      renderContainers();
-      setMode('carton');
-      hideAlert();
-    }
-
-    renderContainers();
-    document.querySelectorAll('.mode-btn').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
-    $('calculateBtn').addEventListener('click', calculate);
-    $('exampleBtn').addEventListener('click', fillExample);
-    $('resetBtn').addEventListener('click', resetAll);
-    document.addEventListener('keydown', event => { if (event.key === 'Enter' && event.target.matches('input')) calculate(); });
-  </script>
+<main class="page">
+<header class="hero">
+<div class="eyebrow">CROSS-BORDER LOGISTICS</div>
+<h1>跨境物流仓储费用测算器</h1>
+<p>一站式测算跨境头程物流费与海外仓操作费，对比服务商方案并生成可分享的报价图片。</p>
+</header>
+<div class="stack">
+<section class="card">
+<div class="title">
+<h2>
+<span class="step">1</span>货物参数</h2>
+<span class="hint">带 * 为必填</span>
+</div>
+<div class="seg">
+<button class="mode active" data-mode="carton">按外箱尺寸计算</button>
+<button class="mode" data-mode="item">按单品尺寸计算</button>
+</div>
+<div id="cartonFields" class="grid">
+<div class="field">
+<label>外箱长 cm *</label>
+<input id="cLen" type="number">
+</div>
+<div class="field">
+<label>外箱宽 cm *</label>
+<input id="cWid" type="number">
+</div>
+<div class="field">
+<label>外箱高 cm *</label>
+<input id="cHei" type="number">
+</div>
+<div class="field">
+<label>单箱毛重 KG *</label>
+<input id="grossWeight" type="number">
+</div>
+<div class="field">
+<label>每箱装货量 *</label>
+<input id="perCarton" type="number">
+</div>
+<div class="field">
+<label>总箱数（选填）</label>
+<input id="totalCartons" type="number">
+</div>
+<div class="field">
+<label>单品数量（选填）</label>
+<input id="cartonItems" type="number">
+</div>
+</div>
+<div id="itemFields" class="grid hidden">
+<div class="field">
+<label>单品长 cm *</label>
+<input id="iLen" type="number">
+</div>
+<div class="field">
+<label>单品宽 cm *</label>
+<input id="iWid" type="number">
+</div>
+<div class="field">
+<label>单品高 cm *</label>
+<input id="iHei" type="number">
+</div>
+<div class="field">
+<label>单品毛重 KG *</label>
+<input id="itemWeight" type="number">
+</div>
+<div class="field">
+<label>单品数量（选填）</label>
+<input id="itemQty" type="number">
+</div>
+</div>
+<div class="product-info"><div class="title"><h2>商品信息与属性判断</h2><span class="hint">系统根据商品信息自动匹配报价属性</span></div><div class="grid"><div class="field"><label>商品名称</label><input id="productName" placeholder="如：保温杯、化妆品、移动电源"></div><div class="field"><label>商品品类</label><select id="productCategory"><option>日用品</option><option>食品</option><option>液体</option><option>粉末</option><option>电子产品</option><option>带电产品</option><option>化妆品</option><option>品牌商品</option><option>仿牌商品</option><option>其他</option></select></div></div><div class="check-grid"><label class="check-item"><input id="battery" type="checkbox">带电</label><label class="check-item"><input id="liquid" type="checkbox">含液体</label><label class="check-item"><input id="powder" type="checkbox">含粉末</label><label class="check-item"><input id="food" type="checkbox">食品</label><label class="check-item"><input id="cosmetic" type="checkbox">化妆品</label><label class="check-item"><input id="branded" type="checkbox">品牌商品</label><label class="check-item"><input id="counterfeit" type="checkbox">仿牌</label><label class="check-item"><input id="dangerous" type="checkbox">危险品 / 易燃易爆</label></div><div id="cargoInference" class="inference"><b>系统判断货物属性：普货</b><span class="sub">未命中敏感属性，默认按普货测算</span></div></div>
+<div class="metric">
+<div>
+<small id="unitLabel">单箱体积</small>
+<b id="unitVolume">--</b>
+</div>
+<div>
+<small>产品密度</small>
+<b id="density">--</b>
+</div>
+<div>
+<small>货物总体积 / 总重量</small>
+<b id="cargoTotal">未填写总货量</b>
+</div>
+<div>
+<small>系统判断</small>
+<b id="autoMode">等待总货量</b>
+</div>
+</div>
+</section>
+<section class="card">
+<div class="title">
+<h2>
+<span class="step">2</span>报价筛选条件</h2>
+<span class="hint">派送区域留空表示不限</span>
+</div>
+<div class="grid">
+<div class="field">
+<label>目的国家 *</label>
+<select id="filterCountry">
+<option value="">请选择</option>
+<option>马来西亚</option>
+<option>泰国</option>
+<option>越南</option>
+<option>印尼</option>
+<option>新加坡</option>
+<option>美国</option>
+<option>巴西</option>
+<option>阿根廷</option>
+</select>
+</div>
+<div class="field">
+<label>派送城市（可搜索、多选）</label>
+<div id="areaMulti" class="multi-dropdown"><button id="areaToggle" class="multi-toggle" type="button"><span id="areaText">不限</span><span>⌄</span></button><div id="areaMenu" class="multi-menu"><input id="citySearch" class="multi-search" placeholder="搜索城市"><div id="cityOptions"></div></div></div>
+<span class="select-help">选择具体城市后，系统自动匹配各物流商价格分区</span>
+</div>
+<div class="field">
+<label>发货地</label>
+<select id="filterWarehouse"><option>华东</option><option>华南</option></select>
+</div>
+<div class="field"><label>系统货物属性</label><div id="filterCargoDisplay" class="mode-box">普货</div></div>
+<div class="field">
+<label>运输方式</label>
+<select id="filterTransport"><option>海运</option><option>陆运</option></select>
+</div>
+</div>
+</section>
+<section class="card">
+<div class="title">
+<div>
+<h2>
+<span class="step">3</span>物流商报价</h2>
+<span id="quoteHint" class="hint">选择国家后展示系统报价；修改仅本次有效</span>
+</div>
+</div>
+<div id="quoteList" class="quote-list">
+</div>
+<div id="quoteEmpty" class="empty">请先选择目的国家</div>
+<div class="actions">
+<button id="calculate" class="btn primary">开始测算与对比</button>
+<button id="fillExample" class="btn secondary">填入示例</button>
+<button id="restore" class="btn ghost">恢复系统报价</button>
+</div>
+<div id="alert" class="alert">
+</div>
+</section>
+<section class="card">
+<div class="title">
+<div>
+<h2>
+<span class="step">4</span>跨境物流费测算结果</h2>
+<span id="resultHint" class="hint">等待跨境物流费测算</span>
+</div>
+</div>
+<div id="resultEmpty" class="empty">暂无结果</div>
+<div id="results" class="table-wrap hidden">
+<table>
+<thead>
+<tr>
+<th>物流商</th>
+<th>仓库</th>
+<th>区域</th>
+<th>系统货物属性</th>
+<th>报价货物属性</th>
+<th>运输方式</th>
+<th>重泡比</th>
+<th>货物判断</th>
+<th>实际/计费CBM</th>
+<th>基础运费</th>
+<th>附加费</th>
+<th>总运费</th>
+<th>每箱运费</th>
+<th>每件运费</th>
+<th>起运金额</th>
+<th>起运判断</th>
+<th>税费口径</th>
+<th>时效</th>
+<th>推荐</th>
+</tr>
+</thead>
+<tbody id="resultBody">
+</tbody>
+</table>
+</div>
+<div id="resultNotice" class="notice">
+</div>
+</section>
+<section class="card">
+<div class="title">
+<h2>
+<span class="step">5</span>海外仓操作费</h2><span class="hint">复用上方商品数量、体积和重量</span></div>
+<div class="warehouse-controls"><div class="field"><label>单品包装长 cm *</label><input id="pkgLen" type="number" min="0"></div><div class="field"><label>单品包装宽 cm *</label><input id="pkgWid" type="number" min="0"></div><div class="field"><label>单品包装高 cm *</label><input id="pkgHei" type="number" min="0"></div><div class="field"><label>平均订单件数</label><input id="avgOrderQty" type="number" min="0.01" step="0.01" value="1"></div><div class="field"><label>是否贴标</label><select id="labelMode"><option>已贴标</option><option>仓库贴标</option></select></div><div class="field"><label>预计库存周转天数</label><input id="turnoverDays" type="number" min="0" value="30"></div><div class="field"><label>预计退货率 %</label><input id="returnRate" type="number" min="0" max="100" value="10"></div><div class="field"><label>是否计算退货费用</label><select id="includeReturns"><option>是</option><option>否</option></select></div><div id="pkgSource" class="hint package-source">包装尺寸将根据卡片 1 自动填写，填写后仍可手动修改。</div></div>
+<div id="warehouseTemplateEditors" class="template-editors"></div><div class="warehouse-actions"><button id="calcWarehouse" class="btn primary">测算海外仓操作费</button><button id="resetWarehouse" class="btn ghost">恢复模板默认值</button></div><div id="warehouseAlert" class="alert"></div><div id="warehouseEmpty" class="empty">填写总件数和单品包装尺寸后开始测算海外仓操作费</div><div id="warehouseResults" class="table-wrap warehouse-table hidden"><table><thead><tr><th>海外仓</th><th>SKU等级</th><th>包装三边和</th><th>入库/件</th><th>仓储/件</th><th>出库操作/件</th><th>退货摊销/件</th><th>单件海外仓费用</th><th>备注</th></tr></thead><tbody id="warehouseResultBody"></tbody></table></div>
+</section>
+<section class="card"><div class="title"><h2><span class="step">6</span>总费用汇总与报价分享</h2><span class="hint">选择已测算的服务商生成报价图片</span></div><div class="summary-grid"><div><small>单件头程运输费</small><b id="summaryFreight">未测算</b></div><div><small>最低单件海外仓费用</small><b id="summaryWarehouse">未测算</b></div><div><small>单件物流仓储总费用</small><b id="summaryTotal">待完整测算</b></div></div><div class="share-controls"><div class="field"><label>跨境物流服务商</label><select id="shareFreightProvider"><option value="">请先完成跨境物流费测算</option></select></div><div class="field"><label>海外仓服务商</label><select id="shareWarehouseProvider"><option value="">请先完成海外仓操作费测算</option></select></div></div><div class="share-actions"><button id="generateQuoteImage" class="btn primary">生成报价图片</button><button id="shareQuoteImage" class="btn secondary" disabled>分享报价图片</button><a id="downloadQuoteImage" class="btn ghost hidden" download="跨境物流仓储费用报价.png">保存图片</a></div><div id="shareAlert" class="alert"></div><img id="quotePreview" class="quote-preview hidden" alt="跨境物流仓储费用报价预览"></section>
+<section class="card">
+<div class="title">
+<h2>
+<span class="step">7</span>计算说明</h2>
+</div>
+<ol class="notes">
+<li>内置报价更新于2026-07-26。</li>
+<li>当前版本主要用于散货 LCL 报价测算，整柜 FCL 报价暂未纳入计算。</li><li>当货量较大时，系统会提示建议询整柜报价，但仍按散货每CBM报价临时估算。</li><li>商品货物属性由系统根据商品信息自动判断，仅用于初步测算。</li><li>敏货、特货、品牌货、仿牌、带电、液体、粉末、食品、化妆品等商品，最终能否发运需以物流商确认为准。</li><li>不满足最低起运金额时，测算结果仅作参考，不应作为最终发货报价。</li><li>产品密度低于或等于重泡比时按CBM计费；高于重泡比时提示重货需按KG询价。</li>
+<li>海外仓操作费按商品从入库、仓储、出库到退货的流程估算。</li><li>商品尺寸和外箱信息复用头程模块，但订单处理费按单品包装尺寸判断。</li><li>是否贴标默认为已贴标；选择仓库贴标时额外计算贴标费。</li><li>仓储费按预计库存周转天数分段计算，前30天免费规则会自动拆分。</li><li>退货费用为按退货率摊销后的估算值，具体收费以海外仓最终报价为准。</li><li>报价图片基于当前选择和测算结果生成，仅供业务沟通，最终费用以服务商确认为准。</li>
+</ol>
+</section>
+</div>
+</main>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];let cargoMode='carton',quotes=[],lastFreightPerItem=null,lastWarehousePerItem=null,lastFreightRows=[],lastWarehouseRows=[],quoteImageBlob=null,quoteImageUrl='',packageManuallyEdited=false;
+function addMatrix(out,country,provider,warehouse,zones,types,prices,opts={}){Object.entries(zones).forEach(([zone,area])=>types.forEach((type,ti)=>{const p=prices[zone]?.[ti];if(p!=null)out.push({country,provider,warehouse,zone,area,cargoType:type,mode:'LCL',cbmRate:p,ratio:opts.ratio||300,minCbm:opts.minCbm??.5,minAmount:opts.minAmount||0,fixedFee:opts.fixedFee||0,extraCbm:opts.extraCbm||0,extraCarton:opts.extraCarton||0,tax:opts.tax||'双清包税',days:opts.days||'',notes:opts.notes||'',source:opts.source||'BEST报价PDF'})}))}
+function systemQuotes(){const a=[];const std=['普货','特货','品牌货'];
+addMatrix(a,'马来西亚','BEST','广州',{'A区':'西马A区，具体地址需物流商确认','B区':'西马B区，具体地址需物流商确认','C区':'东马C区，具体地址需物流商确认','D区':'东马D区，具体地址需物流商确认','E区':'东马E区，具体地址需物流商确认','F区':'东马F区，具体地址需物流商确认'},std,{A区:[615,705,795],B区:[645,735,825],C区:[850,940,1030],D区:[1020,1090,1180],E区:[1080,1170,1260],F区:[1190,1280,1370]},{days:'17-35',notes:'A/B西马，C-F东马；东马不接正规业务；仅限广州仓装柜',source:'BEST 2026-06-26 PDF'});
+addMatrix(a,'马来西亚','BEST','义乌',{'A区':'西马A区，具体地址需物流商确认','B区':'西马B区，具体地址需物流商确认'},std,{A区:[665,755,845],B区:[695,785,875]},{days:'18-22',extraCbm:100,source:'BEST 2026-06-26 PDF'});
+const hyAreaA='吉隆坡、雪兰莪';const hyAreaB='森美兰、玻璃市、吉兰丹、吉打、登嘉楼、彭亨、马六甲、新山、布城、槟城、霹雳；不送纳闽、沙巴、砂拉越';addMatrix(a,'马来西亚','环洋仓链','义乌',{'A区':hyAreaA},['普货','敏货','特货'],{A区:[700,810,1060]},{ratio:500,minCbm:0,extraCbm:100,days:'22',tax:'含税',source:'环洋仓链报价图片'});addMatrix(a,'马来西亚','环洋仓链','广州',{'B区':hyAreaB},['普货','敏货','特货'],{B区:[760,870,1120]},{ratio:500,minCbm:0,days:'22',tax:'含税',source:'环洋仓链报价图片'});
+addMatrix(a,'新加坡','BEST','广州',{'A区':'新加坡全境；特殊地址和限制区需确认'},std,{A区:[330,510,570]},{minCbm:1,days:'18-20',source:'BEST 2026-06-26 PDF'});addMatrix(a,'新加坡','BEST','义乌',{'A区':'新加坡全境；特殊地址和限制区需确认'},std,{A区:[360,540,600]},{minCbm:1,days:'20-22',source:'BEST 2026-06-26 PDF'});
+const th={'A区':'泰国A区，具体地址需查询','B区':'泰国B区，具体地址需查询','C区':'泰国C区，具体地址需查询','D区':'泰国D区，具体地址需查询'};addMatrix(a,'泰国','BEST海运','广州',th,std,{A区:[550,710,870],B区:[645,805,965],C区:[735,895,1055],D区:[874,1034,1194]},{days:'15-18',source:'BEST 2026-06-26 PDF'});addMatrix(a,'泰国','BEST海运','义乌',th,std,{A区:[630,790,950],B区:[725,885,1045],C区:[815,975,1035],D区:[944,1114,1274]},{days:'17-20',source:'BEST 2026-06-26 PDF'});addMatrix(a,'泰国','BEST陆运','广州',th,std,{A区:[1035,1180,1340],B区:[1130,1275,1435],C区:[1219,1364,1524],D区:[1360,1505,1665]},{days:'7-9',source:'BEST 2026-06-26 PDF'});addMatrix(a,'泰国','BEST陆运','义乌',th,std,{A区:[1135,1280,1440],B区:[1230,1375,1535],C区:[1319,1464,1624],D区:[1460,1605,1765]},{days:'8-10',source:'BEST 2026-06-26 PDF'});
+const vn={'A区':'越南河内A区','B区':'越南B区，具体地址需查询','C区':'胡志明市C区','D区':'越南D区，具体地址需查询'};addMatrix(a,'越南','BEST陆运','广州',vn,std,{A区:[575,825,1135],B区:[770,1020,1330],C区:[810,1060,1370],D区:[905,1155,1465]},{days:'5-7',source:'BEST 2026-06-26 PDF'});addMatrix(a,'越南','BEST陆运','义乌',vn,std,{A区:[695,925,1235],B区:[890,1120,1430],C区:[930,1160,1470],D区:[1025,1255,1565]},{days:'8-10',source:'BEST 2026-06-26 PDF'});
+addMatrix(a,'印尼','BEST海运','广州',{'A区':'印尼A区：雅加达、唐格拉、商品属性需确认'},['普货','敏货','特货','品牌货'],{A区:[1830,1993,2683,2279]},{days:'30-40',notes:'敏货按原二类普货映射；品牌货按原商检报价映射',source:'BEST 2026-06-26 PDF'});addMatrix(a,'印尼','BEST海运','义乌',{'A区':'印尼A区：雅加达、唐格拉、商品属性需确认'},['普货','敏货','特货','品牌货'],{A区:[1830,1993,2683,2279]},{days:'30-40',notes:'敏货按原二类普货映射；品牌货按原商检报价映射',source:'BEST 2026-06-26 PDF'});return a}
+const clone=()=>systemQuotes().map((q,i)=>({...q,id:i}));quotes=clone();function num(e,n=false){const v=e.value.trim();return v===''?(n?null:0):Number(v)}function pos(v){return Number.isFinite(v)&&v>0}function getCargo(silent=false){try{if(cargoMode==='carton'){const l=num($('#cLen')),w=num($('#cWid')),h=num($('#cHei')),kg=num($('#grossWeight')),per=num($('#perCarton'));if(![l,w,h,kg,per].every(pos))throw Error('请完整填写外箱尺寸、毛重和每箱装货量。');const tc=num($('#totalCartons'),true),ti=num($('#cartonItems'),true);if(tc!==null&&ti!==null)throw Error('总箱数和单品数量任选其一。');const uv=l*w*h/1e6,cartons=tc??(ti!==null?ti/per:null);return{uv,density:kg/uv,cartons,items:tc!==null?tc*per:ti,volume:cartons===null?null:cartons*uv,weight:cartons===null?null:cartons*kg}}const l=num($('#iLen')),w=num($('#iWid')),h=num($('#iHei')),kg=num($('#itemWeight')),qty=num($('#itemQty'),true);if(![l,w,h,kg].every(pos))throw Error('请完整填写单品尺寸和毛重。');const uv=l*w*h/1e6;return{uv,density:kg/uv,cartons:null,items:qty,volume:qty===null?null:qty*uv,weight:qty===null?null:qty*kg}}catch(e){if(silent)return null;throw e}}
+function getProductInfo(){const category=$('#productCategory').value;return{name:$('#productName').value.trim(),category,battery:$('#battery').checked||category==='带电产品',liquid:$('#liquid').checked||category==='液体',powder:$('#powder').checked||category==='粉末',food:$('#food').checked||category==='食品',cosmetic:$('#cosmetic').checked||category==='化妆品',branded:$('#branded').checked||category==='品牌商品',counterfeit:$('#counterfeit').checked||category==='仿牌商品',dangerous:$('#dangerous').checked}}
+function inferCargoType(p){if(p.dangerous)return{systemType:'禁运/需人工确认',riskLevel:'high',reason:'商品可能属于危险品或易燃易爆品，需联系物流商确认是否可发'};if(p.counterfeit)return{systemType:'特货',riskLevel:'high',reason:'商品可能涉及仿牌，需确认物流商是否承运'};if(p.branded)return{systemType:'品牌货',riskLevel:'medium',reason:'商品属于品牌商品，部分物流商需按品牌货报价'};if(p.battery||p.liquid||p.powder||p.food||p.cosmetic)return{systemType:'敏货',riskLevel:'medium',reason:'商品含带电/液体/粉末/食品/化妆品等敏感属性'};return{systemType:'普货',riskLevel:'low',reason:'未命中敏感属性，默认按普货测算'}}
+function quoteCargoTypeMatches(inferredType,quoteCargoType){if(inferredType==='禁运/需人工确认')return false;if(inferredType===quoteCargoType)return true;if(inferredType==='敏货')return quoteCargoType==='敏货';if(inferredType==='品牌货')return quoteCargoType==='品牌货';if(inferredType==='特货')return quoteCargoType==='特货';return inferredType==='普货'&&quoteCargoType==='普货'}
+function shipmentSuggestion(volume){if(volume==null)return'等待总货量';if(volume<20)return'适合散货 LCL 测算';if(volume<28)return'接近整柜临界值，可对比散货与整柜报价';return'货量较大，建议询整柜报价；当前仍按散货LCL估算'}
+function updateInference(){const inferred=inferCargoType(getProductInfo()),box=$('#cargoInference');box.className=`inference ${inferred.riskLevel}`;box.innerHTML=`<b>系统判断货物属性：${inferred.systemType}</b><span class="sub">${inferred.reason}</span>`;$('#filterCargoDisplay').textContent=inferred.systemType;return inferred}
+function metrics(){syncPackageDimensions();const c=getCargo(true);$('#unitLabel').textContent=cargoMode==='carton'?'单箱体积':'单品体积';$('#unitVolume').textContent=c?c.uv.toFixed(6)+' CBM':'--';$('#density').textContent=c?c.density.toFixed(2)+' kg/CBM':'--';$('#cargoTotal').textContent=c?.volume!=null?`${c.volume.toFixed(4)} CBM / ${c.weight.toFixed(2)} KG`:'未填写总货量';$('#autoMode').textContent=shipmentSuggestion(c?.volume);updateInference();renderQuotes()}
+const cityData={马来西亚:['吉隆坡','雪兰莪','森兰美（森美兰）','玻璃市','吉兰丹','吉打州','登嘉楼','彭亨','马六甲','新山区','布城','槟城','霹雳州','沙巴','砂拉越'],泰国:['曼谷','清迈','芭提雅','普吉','呵叻','孔敬','宋卡','合艾'],越南:['河内','胡志明市','海防','岘港','芹苴'],印尼:['雅加达','唐格拉'],新加坡:['新加坡'],美国:['洛杉矶','纽约','休斯敦','芝加哥'],巴西:['圣保罗','里约热内卢','库里蒂巴'],阿根廷:['布宜诺斯艾利斯','科尔多瓦']};
+const myA=['吉隆坡','雪兰莪'],myB=['森兰美（森美兰）','玻璃市','吉兰丹','吉打州','登嘉楼','彭亨','马六甲','新山区','布城','槟城','霹雳州'],myEast=['沙巴','砂拉越'];
+function regionLabel(q){if(q.country==='马来西亚'){if(q.provider==='环洋仓链')return q.zone==='A区'?'A区（雪兰莪、吉隆坡）':'B区（森兰美/森美兰、玻璃市、吉兰丹、吉打州、登嘉楼、彭亨、马六甲、新山区、布城、槟城、霹雳州）';return['A区','B区'].includes(q.zone)?`${q.zone}（西马；具体城市映射需地址确认）`:`${q.zone}（东马；具体城市映射需地址确认）`}if(q.country==='越南')return q.zone==='A区'?'A区（河内）':q.zone==='C区'?'C区（胡志明市）':`${q.zone}（具体城市映射需地址确认）`;if(q.country==='印尼')return'A区（雅加达、唐格拉）';if(q.country==='新加坡')return'A区（新加坡全境）';return`${q.zone}（具体城市映射需地址确认）`}
+function selectedCities(){return $$('#cityOptions input:checked').map(i=>i.value)}
+function updateAreaText(){const labels=selectedCities();$('#areaText').textContent=labels.length?`${labels.length} 项：${labels.join('、')}`:'不限'}
+function updateAreaOptions(){const values=cityData[$('#filterCountry').value]||[];$('#cityOptions').innerHTML=values.length?values.map(x=>`<label class="multi-option"><input type="checkbox" value="${x}"><span>${x}</span></label>`).join(''):'<div class="hint" style="padding:8px">当前国家暂无城市选项</div>';$('#citySearch').value='';updateAreaText()}
+function cityMatches(q,cities){if(!cities.length)return true;if(q.country==='马来西亚'){if(q.provider==='环洋仓链')return cities.some(c=>(q.zone==='A区'?myA:myB).includes(c));return cities.some(c=>['A区','B区'].includes(q.zone)?[...myA,...myB].includes(c):myEast.includes(c))}if(q.country==='越南'){return cities.some(c=>q.zone==='A区'?c==='河内':q.zone==='C区'?c==='胡志明市':['海防','岘港','芹苴'].includes(c))}if(q.country==='印尼')return cities.some(c=>['雅加达','唐格拉'].includes(c));if(q.country==='新加坡')return cities.includes('新加坡');return true}
+function warehouseGroup(q){return q.warehouse==='义乌'?'华东':'华南'}function originLabel(q){return q.provider==='环洋仓链'?'华东 / 华南（发货地不影响报价）':`${warehouseGroup(q)}（${q.warehouse}）`}function warehouseMatches(q,selected){return q.provider==='环洋仓链'||warehouseGroup(q)===selected}function transportType(q){return q.provider.includes('陆运')?'陆运':'海运'}
+function match(q){const country=$('#filterCountry').value,cities=selectedCities(),inferred=inferCargoType(getProductInfo()).systemType,warehouse=$('#filterWarehouse').value,transport=$('#filterTransport').value;return q.country===country&&warehouseMatches(q,warehouse)&&transportType(q)===transport&&quoteCargoTypeMatches(inferred,q.cargoType)&&cityMatches(q,cities)}
+function renderQuotes(){const country=$('#filterCountry').value,c=getCargo(true);let list=quotes.filter(match);$('#quoteList').innerHTML=list.map(q=>`<article class="quote" data-id="${q.id}">
+<div class="quote-head">
+<b>${q.provider} · ${originLabel(q)} · ${transportType(q)}</b>
+<span>
+<span class="tag">${regionLabel(q)}</span>
+<span class="tag">${q.cargoType}</span>
+</span>
+</div>
+<div class="quote-grid">
+<div class="field">
+<label>每CBM运费</label>
+<input class="edit rate" type="number" value="${q.cbmRate}">
+</div>
+<div class="field">
+<label>最低收费CBM</label>
+<input class="edit min" type="number" value="${q.minCbm}">
+</div>
+<div class="field"><label>最低起运金额</label><input class="edit minAmount" type="number" value="${q.minAmount}"></div>
+<div class="field">
+<label>重泡比 KG/CBM</label>
+<input class="edit ratio" type="number" value="${q.ratio}">
+</div>
+<div class="field">
+<label>固定附加费</label>
+<input class="edit fixed" type="number" value="${q.fixedFee}">
+</div>
+<div class="field">
+<label>按CBM附加费</label>
+<input class="edit extra" type="number" value="${q.extraCbm}">
+</div>
+<div class="field"><label>按箱附加费</label><input class="edit extraCarton" type="number" value="${q.extraCarton}"></div>
+<div class="field">
+<label>时效</label>
+<input class="edit days" value="${q.days}">
+</div>
+</div>
+<div class="source">${regionLabel(q)} · ${q.tax} · ${q.source}${q.notes?' · '+q.notes:''}</div>
+</article>`).join('');$('#quoteEmpty').classList.toggle('hidden',list.length>0);if(!country)$('#quoteEmpty').textContent='请先选择目的国家';else $('#quoteEmpty').textContent=inferCargoType(getProductInfo()).riskLevel==='high'?'当前商品存在禁运或高风险属性，请联系物流商确认。':'当前筛选条件暂无匹配报价，请调整城市或商品信息。';$('#quoteHint').textContent=`${shipmentSuggestion(c?.volume)}；环洋仓链发货地不影响报价；修改仅本次有效`;$$('.quote').forEach(el=>el.oninput=e=>{if(!e.target.classList.contains('edit'))return;const q=quotes.find(x=>x.id==el.dataset.id);q.cbmRate=num(el.querySelector('.rate'));q.minCbm=num(el.querySelector('.min'));q.minAmount=num(el.querySelector('.minAmount'));q.ratio=num(el.querySelector('.ratio'));q.fixedFee=num(el.querySelector('.fixed'));q.extraCbm=num(el.querySelector('.extra'));q.extraCarton=num(el.querySelector('.extraCarton'));q.days=el.querySelector('.days').value})}
+function calc(){try{$('#alert').classList.remove('show');const c=getCargo(),inferred=inferCargoType(getProductInfo());if(c.volume==null)throw Error('请填写总箱数或单品数量。');if(!$('#filterCountry').value)throw Error('请选择目的国家。');if(inferred.systemType==='禁运/需人工确认')throw Error('商品存在禁运或危险品风险，请联系物流商确认是否可发。');const list=quotes.filter(match);if(!list.length)throw Error(`当前物流商暂无“${inferred.systemType}”匹配报价，请联系物流商确认。`);const rows=list.map(q=>{const heavy=c.density>q.ratio,bill=Math.max(c.volume,q.minCbm),base=heavy?null:bill*q.cbmRate,cartonFeeUnknown=q.extraCarton>0&&c.cartons===null,add=cartonFeeUnknown?null:q.fixedFee+bill*q.extraCbm+(c.cartons||0)*q.extraCarton,total=base===null||add===null?null:base+add,amountNotMet=total!==null&&total<q.minAmount,addressConfirm=regionLabel(q).includes('确认');return{...q,inferred,heavy,bill,base,add,total,cartonFeeUnknown,amountNotMet,addressConfirm,perCarton:total&&c.cartons?total/c.cartons:null,perItem:total&&c.items?total/c.items:null}});const eligible=rows.filter(r=>!r.heavy&&r.total!==null&&!r.amountNotMet&&!r.addressConfirm),min=eligible.length?Math.min(...eligible.map(r=>r.total)):null;rows.forEach(r=>{r.best=min!==null&&r.total===min;r.mark=r.best?((r.tax.includes('含税')||r.tax.includes('双清包税'))?'推荐':'最低价'):(r.heavy||r.amountNotMet||r.addressConfirm||r.cartonFeeUnknown?'需确认':'-')});const top=rows.find(r=>r.best);lastFreightRows=rows;lastFreightPerItem=top?.perItem??null;populateShareOptions();updateCostSummary();$('#resultBody').innerHTML=rows.map(r=>`<tr>
+<td>
+<b>${r.provider}</b>
+</td>
+<td>${originLabel(r)}</td>
+<td>${regionLabel(r)}</td>
+<td>${r.inferred.systemType}</td>
+<td>${r.cargoType}</td>
+<td>${transportType(r)} · 散货/LCL</td>
+<td>${r.ratio}</td>
+<td>${r.heavy?'<span class="tag red">重货</span>':'<span class="tag">泡货</span>'}</td>
+<td>${c.volume.toFixed(3)} / ${r.bill.toFixed(3)}</td>
+<td>${r.base===null?'需KG询价':'¥'+r.base.toFixed(2)}</td>
+<td>${r.add===null?'需填写总箱数':'¥'+r.add.toFixed(2)}</td>
+<td>${r.total===null?'<span class="tag red">联系询价</span>':'¥'+r.total.toFixed(2)}</td>
+<td class="result-cost fee-nowrap">${r.perCarton?'¥'+r.perCarton.toFixed(2):'-'}</td>
+<td class="result-cost fee-nowrap">${r.perItem?'¥'+r.perItem.toFixed(4):'-'}</td>
+<td>¥${r.minAmount.toFixed(2)}</td>
+<td>${r.amountNotMet?'<span class="tag red">不满足，需拼货或确认</span>':r.total===null?'<span class="tag red">无法判断</span>':'<span class="tag">满足</span>'}</td>
+<td>${r.tax}</td>
+<td>${r.days||'-'} 工作日</td>
+<td>${r.mark==='推荐'?'<span class="tag gold">推荐</span>':r.mark==='最低价'?'<span class="tag gold">最低价</span>':r.mark==='需确认'?'<span class="tag red">需确认</span>':'-'}</td>
+</tr>`).join('');$('#results').classList.remove('hidden');$('#resultEmpty').classList.add('hidden');$('#resultHint').textContent=`已对比 ${rows.length} 条内置报价`;const notices=[shipmentSuggestion(c.volume)];if(rows.some(r=>r.heavy))notices.push('部分方案为重货，附件未提供每KG价格');if(rows.some(r=>r.cartonFeeUnknown))notices.push('按箱附加费无法计算，请填写总箱数');if(rows.some(r=>r.amountNotMet))notices.push('部分方案不满足最低起运金额');$('#resultNotice').textContent=notices.join('；')}catch(e){$('#alert').textContent=e.message;$('#alert').classList.add('show');$('#results').classList.add('hidden');$('#resultEmpty').classList.remove('hidden')}}
+const warehouseDefaults=[{name:'BEST海外仓',currency:'CNY',inbound:{labelFeePerItem:.2,shelvingFeeRules:[{maxSideSum:35,feePerItem:.2},{maxSideSum:55,feePerItem:.2},{maxSideSum:100,feePerItem:.3},{maxSideSum:150,feePerItem:.5}]},storage:{minItemCbm:.001,tiers:[{fromDay:1,toDay:30,feePerCbmPerDay:0},{fromDay:31,toDay:90,feePerCbmPerDay:3},{fromDay:91,toDay:180,feePerCbmPerDay:5},{fromDay:181,toDay:null,feePerCbmPerDay:8}]},fulfillment:{sizeRules:[{maxSideSum:35,firstItemOrderFee:2.5,additionalItemFee:.5},{maxSideSum:55,firstItemOrderFee:3,additionalItemFee:.8},{maxSideSum:100,firstItemOrderFee:3.5,additionalItemFee:1.5},{maxSideSum:150,firstItemOrderFee:4,additionalItemFee:3}],overVolumeThresholdCbm:null,overVolumeFee:0,overWeightThresholdKg:null,overWeightFee:0},returns:{returnProcessingFeePerOrder:0,returnShelvingFeePerItem:0}},{name:'环洋海外仓',currency:'CNY',inbound:{labelFeePerItem:.2,shelvingFeePerItem:.3},storage:{minItemCbm:.001,tiers:[{fromDay:1,toDay:30,feePerCbmPerDay:0},{fromDay:31,toDay:90,feePerCbmPerDay:3},{fromDay:91,toDay:null,feePerCbmPerDay:6}],largeItemNoFreeStorageCbm:.64},fulfillment:{sizeRules:[{maxSideSum:35,firstItemOrderFee:2.2,additionalItemFee:1},{maxSideSum:55,firstItemOrderFee:2.7,additionalItemFee:1},{maxSideSum:Infinity,firstItemOrderFee:3.2,additionalItemFee:1}],overVolumeThresholdCbm:.025,overVolumeFee:2,overWeightThresholdKg:5,overWeightFee:1.5,multiItemMaxIncludedQty:1},returns:{returnProcessingFeePerOrder:0,returnShelvingFeePerItem:0}}];
+let warehouseTemplates=structuredClone(warehouseDefaults);
+function syncPackageDimensions(force=false){if(packageManuallyEdited&&!force)return;let dims=null,source='';if(cargoMode==='item'){const l=num($('#iLen')),w=num($('#iWid')),h=num($('#iHei'));if([l,w,h].every(pos)){dims=[l,w,h];source='已自动同步卡片 1 的单品尺寸。'}}else{const l=num($('#cLen')),w=num($('#cWid')),h=num($('#cHei')),qty=num($('#perCarton'));if([l,w,h,qty].every(pos)){const scale=Math.cbrt(1/qty);dims=[l*scale,w*scale,h*scale];source='已按外箱尺寸和每箱装货量同比估算单品包装尺寸，可手动修正。'}}if(dims){[$('#pkgLen'),$('#pkgWid'),$('#pkgHei')].forEach((el,i)=>el.value=Number(dims[i].toFixed(2)));$('#pkgSource').textContent=source}else $('#pkgSource').textContent='请先完善卡片 1 的尺寸信息，系统将自动填写包装尺寸。'}
+function pathInput(path,value,label){return`<div class="field"><label>${label}</label><input class="template-value" data-path="${path}" type="number" step="0.01" value="${value??''}"></div>`}
+function renderWarehouseTemplates(){$('#warehouseTemplateEditors').innerHTML=warehouseTemplates.map((t,ti)=>`<details class="template-editor" data-index="${ti}"><summary>${t.name} · 参数临时调整</summary><div class="grid">${pathInput('inbound.labelFeePerItem',t.inbound.labelFeePerItem,'贴标费/件')}${t.inbound.shelvingFeePerItem!=null?pathInput('inbound.shelvingFeePerItem',t.inbound.shelvingFeePerItem,'上架费/件'):''}${pathInput('storage.minItemCbm',t.storage.minItemCbm,'最低计费CBM/件')}${pathInput('fulfillment.overVolumeThresholdCbm',t.fulfillment.overVolumeThresholdCbm,'超体积阈值CBM')}${pathInput('fulfillment.overVolumeFee',t.fulfillment.overVolumeFee,'超体积费/单')}${pathInput('fulfillment.overWeightThresholdKg',t.fulfillment.overWeightThresholdKg,'超重阈值KG')}${pathInput('fulfillment.overWeightFee',t.fulfillment.overWeightFee,'超重费/单')}${pathInput('returns.returnProcessingFeePerOrder',t.returns.returnProcessingFeePerOrder,'退货处理费/单')}${pathInput('returns.returnShelvingFeePerItem',t.returns.returnShelvingFeePerItem,'退货上架费/件')}</div><div class="template-rule"><b>仓储阶梯费率</b><div class="grid">${t.storage.tiers.map((r,i)=>pathInput(`storage.tiers.${i}.feePerCbmPerDay`,r.feePerCbmPerDay,`${r.fromDay}-${r.toDay??'以上'}天 元/CBM/天`)).join('')}</div></div>${t.inbound.shelvingFeeRules?`<div class="template-rule"><b>上架费尺寸阶梯</b><div class="grid">${t.inbound.shelvingFeeRules.map((r,i)=>pathInput(`inbound.shelvingFeeRules.${i}.feePerItem`,r.feePerItem,`三边和≤${r.maxSideSum}cm 元/件`)).join('')}</div></div>`:''}<div class="template-rule"><b>出库操作尺寸阶梯</b><div class="grid">${t.fulfillment.sizeRules.map((r,i)=>`${pathInput(`fulfillment.sizeRules.${i}.firstItemOrderFee`,r.firstItemOrderFee,`≤${Number.isFinite(r.maxSideSum)?r.maxSideSum:'不限'}cm 首件`)}${pathInput(`fulfillment.sizeRules.${i}.additionalItemFee`,r.additionalItemFee,'续件')}`).join('')}</div></div></details>`).join('');$$('.template-value').forEach(el=>el.oninput=()=>{const detail=el.closest('.template-editor'),t=warehouseTemplates[Number(detail.dataset.index)],parts=el.dataset.path.split('.');let target=t;parts.slice(0,-1).forEach(k=>target=target[k]);target[parts.at(-1)]=el.value===''?null:Number(el.value)})}
+function warehouseCargo(){const c=getCargo();if(c.items==null||c.items<=0)throw Error('请填写总箱数或单品数量。');const itemCbm=cargoMode==='carton'?c.uv/num($('#perCarton')):c.uv,itemWeight=cargoMode==='carton'?num($('#grossWeight'))/num($('#perCarton')):num($('#itemWeight'));let l=num($('#pkgLen'),true),w=num($('#pkgWid'),true),h=num($('#pkgHei'),true);if(cargoMode==='item'){l=l??num($('#iLen'));w=w??num($('#iWid'));h=h??num($('#iHei'))}if(!pos(l)||!pos(w)||!pos(h))throw Error('请填写单品包装尺寸。');return{...c,itemCbm,itemWeight,totalItems:c.items,pkg:{l,w,h,sum:l+w+h}}}
+function matchSizeRule(rules,sum){return rules.find(r=>sum<=r.maxSideSum)||null}
+function storageCost(t,wc,days){const billItemCbm=Math.max(wc.itemCbm,t.storage.minItemCbm),inventoryCbm=billItemCbm*wc.totalItems,large=t.storage.largeItemNoFreeStorageCbm!=null&&wc.itemCbm>t.storage.largeItemNoFreeStorageCbm,firstPaid=t.storage.tiers.find(x=>x.feePerCbmPerDay>0)?.feePerCbmPerDay||0;let total=0;for(const tier of t.storage.tiers){const end=tier.toDay??days,n=Math.max(0,Math.min(days,end)-tier.fromDay+1);let rate=tier.feePerCbmPerDay;if(large&&rate===0)rate=firstPaid;total+=inventoryCbm*n*rate}return{total,perItem:total/wc.totalItems,billItemCbm,large}}
+function calcWarehouse(){const box=$('#warehouseAlert');box.classList.remove('show');try{const wc=warehouseCargo(),avg=num($('#avgOrderQty')),days=num($('#turnoverDays')),rr=num($('#returnRate'));if(!pos(avg))throw Error('平均订单件数必须大于0。');if(days<0)throw Error('预计库存周转天数不能小于0。');if(rr<0||rr>100)throw Error('预计退货率必须在0-100之间。');const rows=warehouseTemplates.map(t=>{const shelfRule=t.inbound.shelvingFeeRules?matchSizeRule(t.inbound.shelvingFeeRules,wc.pkg.sum):null,sizeRule=matchSizeRule(t.fulfillment.sizeRules,wc.pkg.sum);if(!sizeRule)throw Error(`${t.name}：单品包装三边和超出模板尺寸范围。`);const label=$('#labelMode').value==='仓库贴标'?wc.totalItems*t.inbound.labelFeePerItem:0,shelf=wc.totalItems*(shelfRule?.feePerItem??t.inbound.shelvingFeePerItem??0),inbound=(label+shelf)/wc.totalItems,storage=storageCost(t,wc,days),additional=Math.max(avg-1,0)*sizeRule.additionalItemFee,orderCbm=wc.itemCbm*avg,orderKg=wc.itemWeight*avg,overV=t.fulfillment.overVolumeThresholdCbm!=null&&orderCbm>t.fulfillment.overVolumeThresholdCbm?t.fulfillment.overVolumeFee:0,overW=t.fulfillment.overWeightThresholdKg!=null&&orderKg>t.fulfillment.overWeightThresholdKg?t.fulfillment.overWeightFee:0,fulfillment=(sizeRule.firstItemOrderFee+additional+overV+overW)/avg,ret=$('#includeReturns').value==='是'?(t.returns.returnProcessingFeePerOrder+t.returns.returnShelvingFeePerItem*avg)*(rr/100)/avg:0,total=inbound+storage.perItem+fulfillment+ret;return{t,grade:`三边和≤${Number.isFinite(sizeRule.maxSideSum)?sizeRule.maxSideSum:'不限'}cm`,inbound,storage:storage.perItem,fulfillment,ret,total,large:storage.large,overV,overW}});const min=Math.min(...rows.map(r=>r.total));lastWarehouseRows=rows;populateShareOptions();$('#warehouseResultBody').innerHTML=rows.map(r=>`<tr><td><b>${r.t.name}</b></td><td>${r.grade}</td><td>${wc.pkg.sum.toFixed(2)} cm</td><td>¥${r.inbound.toFixed(4)}</td><td>¥${r.storage.toFixed(4)}</td><td>¥${r.fulfillment.toFixed(4)}</td><td>¥${r.ret.toFixed(4)}</td><td class="result-cost fee-nowrap">¥${r.total.toFixed(4)}${r.total===min?'<span class="sub">最低费用</span>':''}</td><td>${[r.large?'大件首月不免仓租':'',r.overV?'含超体积费':'',r.overW?'含超重费':''].filter(Boolean).join('；')||'-'}</td></tr>`).join('');$('#warehouseResults').classList.remove('hidden');$('#warehouseEmpty').classList.add('hidden');if(avg>wc.totalItems){box.textContent='平均订单件数大于总件数，请检查输入；当前仍按填写值计算。';box.classList.add('show')}lastWarehousePerItem=min;updateCostSummary()}catch(e){box.textContent=e.message;box.classList.add('show');$('#warehouseResults').classList.add('hidden');$('#warehouseEmpty').classList.remove('hidden')}}
+function populateShareOptions(){const fs=$('#shareFreightProvider'),ws=$('#shareWarehouseProvider'),fv=fs.value,wv=ws.value;fs.innerHTML=lastFreightRows.length?lastFreightRows.map((r,i)=>`<option value="${i}">${r.provider} · ${originLabel(r)} · ${r.zone}</option>`).join(''):'<option value="">请先完成跨境物流费测算</option>';ws.innerHTML=lastWarehouseRows.length?lastWarehouseRows.map((r,i)=>`<option value="${i}">${r.t.name}</option>`).join(''):'<option value="">请先完成海外仓操作费测算</option>';if([...fs.options].some(o=>o.value===fv))fs.value=fv;else if(lastFreightRows.length){const best=lastFreightRows.findIndex(r=>r.best);fs.value=String(best>=0?best:0)}if([...ws.options].some(o=>o.value===wv))ws.value=wv;else if(lastWarehouseRows.length){const min=Math.min(...lastWarehouseRows.map(r=>r.total));ws.value=String(lastWarehouseRows.findIndex(r=>r.total===min))}}
+function canvasText(ctx,text,x,y,size=28,color='#1d2d29',weight=400){ctx.font=`${weight} ${size}px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif`;ctx.fillStyle=color;ctx.fillText(text,x,y)}
+function drawFeeRow(ctx,label,value,y,highlight=false){ctx.fillStyle=highlight?'#e9f5f2':'#f7faf9';ctx.fillRect(70,y-40,1060,64);canvasText(ctx,label,96,y,25,'#536661',600);ctx.textAlign='right';canvasText(ctx,value,1104,y,highlight?31:27,highlight?'#0e5145':'#1d2d29',800);ctx.textAlign='left'}
+async function generateQuoteImage(){const box=$('#shareAlert');box.classList.remove('show');try{if(!lastFreightRows.length||!lastWarehouseRows.length)throw Error('请先分别完成跨境物流费和海外仓操作费测算。');const freight=lastFreightRows[Number($('#shareFreightProvider').value)],warehouse=lastWarehouseRows[Number($('#shareWarehouseProvider').value)],cargo=getCargo(),product=$('#productName').value.trim()||'未填写商品名称';if(!freight||!warehouse)throw Error('请选择跨境物流服务商和海外仓服务商。');if(freight.total==null||freight.perItem==null)throw Error('所选跨境物流方案暂时无法计算完整费用，请选择可计算方案。');const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=1120;const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,1200,1120);ctx.fillStyle='#176b5b';ctx.fillRect(0,0,1200,180);canvasText(ctx,'跨境物流仓储费用报价',70,88,45,'#fff',800);canvasText(ctx,`生成日期：${new Date().toLocaleDateString('zh-CN')}`,70,138,22,'#dff1ed',400);canvasText(ctx,'货物信息',70,240,30,'#0e5145',800);canvasText(ctx,`商品：${product}`,70,286,25);canvasText(ctx,`目的地：${$('#filterCountry').value}  ${selectedCities().join('、')||'区域不限'}`,70,326,25);canvasText(ctx,`总货量：${cargo.volume.toFixed(4)} CBM / ${cargo.items??'-'} 件`,70,366,25);canvasText(ctx,'服务商方案',70,432,30,'#0e5145',800);canvasText(ctx,`跨境物流：${freight.provider} · ${originLabel(freight)} · ${transportType(freight)}散货`,70,478,25);canvasText(ctx,`海外仓：${warehouse.t.name}`,70,518,25);drawFeeRow(ctx,'跨境物流总运费',`¥${freight.total.toFixed(2)}`,590);drawFeeRow(ctx,'每箱跨境物流费',freight.perCarton!=null?`¥${freight.perCarton.toFixed(2)}`:'-',664);drawFeeRow(ctx,'每件跨境物流费',`¥${freight.perItem.toFixed(4)}`,738);drawFeeRow(ctx,'每件海外仓操作费',`¥${warehouse.total.toFixed(4)}`,812);drawFeeRow(ctx,'每件物流仓储总费用',`¥${(freight.perItem+warehouse.total).toFixed(4)}`,886,true);canvasText(ctx,`税费口径：${freight.tax}    时效：${freight.days||'-'} 工作日`,70,974,23,'#687b76');canvasText(ctx,'本报价为系统测算结果，仅供业务沟通，最终费用以服务商确认为准。',70,1030,21,'#9b6100');quoteImageBlob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!quoteImageBlob)throw Error('报价图片生成失败，请重试。');if(quoteImageUrl)URL.revokeObjectURL(quoteImageUrl);quoteImageUrl=URL.createObjectURL(quoteImageBlob);$('#quotePreview').src=quoteImageUrl;$('#quotePreview').classList.remove('hidden');$('#downloadQuoteImage').href=quoteImageUrl;$('#downloadQuoteImage').classList.remove('hidden');$('#shareQuoteImage').disabled=false;box.textContent='报价图片已生成，可保存或分享。';box.classList.add('show')}catch(e){box.textContent=e.message;box.classList.add('show')}}
+async function shareQuoteImage(){const box=$('#shareAlert');try{if(!quoteImageBlob)throw Error('请先生成报价图片。');const file=new File([quoteImageBlob],'跨境物流仓储费用报价.png',{type:'image/png'});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:'跨境物流仓储费用报价',text:'跨境物流仓储费用测算报价',files:[file]});return}throw Error('当前浏览器不支持直接分享，请点击“保存图片”后发送。')}catch(e){if(e.name!=='AbortError'){box.textContent=e.message;box.classList.add('show')}}}
+function updateCostSummary(){$('#summaryFreight').textContent=lastFreightPerItem==null?'未测算':`¥${lastFreightPerItem.toFixed(4)}`;$('#summaryWarehouse').textContent=lastWarehousePerItem==null?'未测算':`¥${lastWarehousePerItem.toFixed(4)}`;$('#summaryTotal').textContent=lastFreightPerItem!=null&&lastWarehousePerItem!=null?`¥${(lastFreightPerItem+lastWarehousePerItem).toFixed(4)}`:'待完整测算'}
+function invalidateResults(){$('#results').classList.add('hidden');$('#resultEmpty').classList.remove('hidden');$('#resultHint').textContent='筛选条件已更新，请重新测算跨境物流费';lastFreightRows=[];lastFreightPerItem=null;populateShareOptions();updateCostSummary()}
+function setMode(){const c=cargoMode==='carton';$('#cartonFields').classList.toggle('hidden',!c);$('#itemFields').classList.toggle('hidden',c);$$('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===cargoMode));packageManuallyEdited=false;metrics()}
+$$('.mode').forEach(b=>b.onclick=()=>{cargoMode=b.dataset.mode;setMode()});document.addEventListener('input',e=>{if(e.target.closest('#cartonFields,#itemFields'))metrics()});$$('#pkgLen,#pkgWid,#pkgHei').forEach(el=>el.addEventListener('input',()=>{packageManuallyEdited=true;$('#pkgSource').textContent='当前使用手动填写的单品包装尺寸；切换计算方式后将重新自动同步。'}));
+$('#filterCountry').onchange=()=>{updateAreaOptions($('#filterCountry').value==='马来西亚');renderQuotes();invalidateResults()};
+['filterWarehouse','filterTransport'].forEach(id=>$('#'+id).onchange=()=>{renderQuotes();invalidateResults()});
+$('.product-info').oninput=()=>{updateInference();renderQuotes();invalidateResults()};$('.product-info').onchange=()=>{updateInference();renderQuotes();invalidateResults()};
+$('#areaMenu').onchange=()=>{updateAreaText();renderQuotes();invalidateResults()};
+$('#citySearch').oninput=e=>{const key=e.target.value.trim().toLowerCase();$$('#cityOptions .multi-option').forEach(el=>el.classList.toggle('hidden',!el.textContent.toLowerCase().includes(key)))};
+$('#areaToggle').onclick=()=>$('#areaMulti').classList.toggle('open');document.addEventListener('click',e=>{if(!e.target.closest('#areaMulti'))$('#areaMulti').classList.remove('open')});
+$('#calculate').onclick=calc;$('#restore').onclick=()=>{quotes=clone();renderQuotes()};
+$('#calcWarehouse').onclick=calcWarehouse;$('#resetWarehouse').onclick=()=>{warehouseTemplates=structuredClone(warehouseDefaults);renderWarehouseTemplates();lastWarehouseRows=[];lastWarehousePerItem=null;populateShareOptions();updateCostSummary();$('#warehouseResults').classList.add('hidden');$('#warehouseEmpty').classList.remove('hidden')};
+$('#generateQuoteImage').onclick=generateQuoteImage;$('#shareQuoteImage').onclick=shareQuoteImage;
+$('#fillExample').onclick=()=>{$('#cLen').value=51;$('#cWid').value=34;$('#cHei').value=27;$('#grossWeight').value=11;$('#perCarton').value=24;$('#totalCartons').value=10;$('#cartonItems').value='';$('#productName').value='保温杯';$('#productCategory').value='日用品';$$('.product-info input[type="checkbox"]').forEach(i=>i.checked=false);$('#filterCountry').value='马来西亚';$('#filterWarehouse').value='华东';$('#filterTransport').value='海运';updateAreaOptions();const city=$$('#cityOptions input').find(i=>i.value==='吉隆坡');if(city)city.checked=true;updateAreaText();metrics();calc()};
+renderWarehouseTemplates();updateAreaOptions();metrics();populateShareOptions();updateCostSummary();
+</script>
 </body>
 </html>
